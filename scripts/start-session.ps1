@@ -23,7 +23,9 @@ try {
     $prompt = "Run the morning briefing. Gather all data sources and generate the dashboard."
 
     Add-Content -Path $logFile -Value "[$timestamp] Launching Claude Code in project directory: $repoRoot"
-    & $claudePath --project $repoRoot --dangerously-skip-permissions --prompt $prompt
+    Push-Location $repoRoot
+    & $claudePath --dangerously-skip-permissions -p $prompt
+    Pop-Location
     if ($LASTEXITCODE -ne 0) {
         Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Claude exited with code $LASTEXITCODE"
         exit $LASTEXITCODE
