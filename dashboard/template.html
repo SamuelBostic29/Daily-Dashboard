@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Good Morning, Claude</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e1e4e8;
+            line-height: 1.5;
+            padding: 24px;
+        }
+
+        header {
+            margin-bottom: 32px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #f0f2f5;
+            margin-bottom: 4px;
+        }
+
+        header .timestamp {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .section {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid #21262d;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header:focus {
+            outline: 2px solid #388bfd;
+            outline-offset: -2px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #c9d1d9;
+        }
+
+        .badge {
+            background: #388bfd;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        .badge.zero {
+            background: #2d333b;
+            color: #6b7280;
+        }
+
+        .section-body {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .item {
+            display: block;
+            padding: 12px 18px;
+            border-bottom: 1px solid #21262d;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.1s;
+        }
+
+        .item:last-child { border-bottom: none; }
+
+        .item:hover {
+            background: #1c2128;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .item-primary {
+            font-size: 13px;
+            font-weight: 500;
+            color: #e1e4e8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .item-secondary {
+            font-size: 12px;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .item-meta {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item.dismissed {
+            display: none;
+        }
+
+        .dismiss-btn {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 0 0 8px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .dismiss-btn:hover {
+            color: #e1e4e8;
+        }
+
+        .sub-group-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            padding: 10px 18px 4px;
+            background: #161b22;
+        }
+
+        .label-tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            margin-right: 4px;
+        }
+
+        .ci-pass { color: #3fb950; }
+        .ci-fail { color: #f85149; }
+        .ci-pending { color: #d29922; }
+
+        .empty-state {
+            padding: 24px 18px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .section-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .section-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .section-body::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Good Morning, Claude</h1>
+        <div class="timestamp">{{GENERATED_AT}}</div>
+    </header>
+
+    <div class="sections">
+        <section class="section" id="emails">
+            <div class="section-header" tabindex="0">
+                <span class="section-title">Emails</span>
+                <span class="badge" id="emails-badge">0</span>
+            </div>
+            <div class="section-body" id="emails-body">
+                {{EMAILS_CONTENT}}
+            </div>
+        </section>
+
+        <section class="section" id="teams">
+            <div class="section-header" tabindex="0">
+                <span class="section-title">Teams</span>
+                <span class="badge" id="teams-badge">0</span>
+            </div>
+            <div class="section-body" id="teams-body">
+                {{TEAMS_CONTENT}}
+            </div>
+        </section>
+
+        <section class="section" id="prs">
+            <div class="section-header" tabindex="0">
+                <span class="section-title">Pull Requests</span>
+                <span class="badge" id="prs-badge">0</span>
+            </div>
+            <div class="section-body" id="prs-body">
+                {{PRS_CONTENT}}
+            </div>
+        </section>
+
+        <section class="section" id="issues">
+            <div class="section-header" tabindex="0">
+                <span class="section-title">Assigned Issues</span>
+                <span class="badge" id="issues-badge">0</span>
+            </div>
+            <div class="section-body" id="issues-body">
+                {{ISSUES_CONTENT}}
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- Dismiss per session (localStorage, resets daily) ---
+        const storageKey = 'gmc-dismissed-' + new Date().toISOString().slice(0, 10);
+
+        // Clear old keys
+        Object.keys(localStorage).forEach(function(key) {
+            if (key.startsWith('gmc-dismissed-') && key !== storageKey) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        var dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+        function applyDismissed() {
+            dismissed.forEach(function(id) {
+                var el = document.querySelector('[data-item-id="' + id + '"]');
+                if (el) el.classList.add('dismissed');
+            });
+            updateBadges();
+        }
+
+        function dismissItem(id, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            dismissed.push(id);
+            localStorage.setItem(storageKey, JSON.stringify(dismissed));
+            var el = document.querySelector('[data-item-id="' + id + '"]');
+            if (el) el.classList.add('dismissed');
+            updateBadges();
+        }
+
+        function updateBadges() {
+            var sections = ['emails', 'teams', 'prs', 'issues'];
+            sections.forEach(function(id) {
+                var body = document.getElementById(id + '-body');
+                var badge = document.getElementById(id + '-badge');
+                var visible = body.querySelectorAll('.item:not(.dismissed)').length;
+                badge.textContent = visible;
+                badge.classList.toggle('zero', visible === 0);
+            });
+        }
+
+        // --- Keyboard navigation ---
+        var headers = document.querySelectorAll('.section-header');
+        var currentSection = 0;
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentSection = (currentSection + 1) % headers.length;
+                headers[currentSection].focus();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentSection = (currentSection - 1 + headers.length) % headers.length;
+                headers[currentSection].focus();
+            }
+        });
+
+        // Init
+        applyDismissed();
+    </script>
+</body>
+</html>
