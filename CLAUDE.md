@@ -33,7 +33,25 @@ Categorize items as: DMs, @mentions, or channel notifications.
 
 Do not mark anything as read — the user manages read state in Teams.
 
-### Step 3: Generate Dashboard
+### Step 3: GitHub PR Review Queue
+
+Use the `gh` CLI to fetch open pull requests where your review is requested:
+
+```
+gh search prs --review-requested=@me --state=open --json title,repository,number,url,author,createdAt,statusCheckRollup
+```
+
+Collect for each PR:
+- Title
+- Repository full name
+- PR number and URL
+- Author
+- Age (days since opened)
+- CI check summary (passing/failing/pending)
+
+Exclude PRs where the user has already submitted a review.
+
+### Step 4: Generate Dashboard
 
 Once all data is collected, generate a self-contained HTML dashboard file and open it in the default browser. See the Dashboard section below for format details.
 
@@ -45,6 +63,7 @@ The dashboard should include:
 - **Header** with the current date and time of generation
 - **Emails section** with badge count, showing each email's sender, subject, time, and preview
 - **Teams section** with badge count, showing DMs, @mentions, and channel notifications with sender/channel, preview, and time
+- **PR Review Queue section** with badge count, showing each PR's title, repo, author, age, and CI status
 - Each item should be clickable (links to the original item)
 - Items can be dismissed per session (use localStorage, resets next morning)
 - Clean, professional dark theme
