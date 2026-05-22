@@ -53,7 +53,25 @@ Split results into two groups:
 - **My PRs** — PRs authored by `SBosticParadigm`
 - **Needs My Review** — all other PRs in the results
 
-### Step 4: Generate Dashboard
+### Step 4: GitHub Assigned Issues
+
+Use the `gh` CLI to fetch all open issues assigned to the user:
+
+```
+gh search issues "is:issue is:open assignee:SBosticParadigm archived:false" --sort updated --json title,repository,number,url,labels,milestone,assignees,updatedAt
+```
+
+Collect for each issue:
+- Title
+- Repository full name
+- Issue number and URL
+- Labels
+- Milestone (if any)
+- Days since last activity
+
+Sort by last-updated descending so stale issues surface clearly.
+
+### Step 5: Generate Dashboard
 
 Once all data is collected, generate a self-contained HTML dashboard file and open it in the default browser. See the Dashboard section below for format details.
 
@@ -66,6 +84,7 @@ The dashboard should include:
 - **Emails section** with badge count, showing each email's sender, subject, time, and preview
 - **Teams section** with badge count, showing DMs, @mentions, and channel notifications with sender/channel, preview, and time
 - **PR Queue section** with badge count, split into "My PRs" and "Needs My Review" sub-groups, showing each PR's title, repo, author, age, and CI status
+- **Assigned Issues section** with badge count, showing each issue's title, repo, labels, milestone, and days since last activity
 - Each item should be clickable (links to the original item)
 - Items can be dismissed per session (use localStorage, resets next morning)
 - Clean, professional dark theme
