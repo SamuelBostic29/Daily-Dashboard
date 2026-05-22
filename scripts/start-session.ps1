@@ -20,7 +20,7 @@ try {
     $claudePath = (Get-Command claude).Source
     Add-Content -Path $logFile -Value "[$timestamp] Found Claude CLI at: $claudePath"
 
-    $prompt = "Run the morning briefing. Gather all data sources and generate the dashboard."
+    $prompt = "Run the morning briefing."
 
     Add-Content -Path $logFile -Value "[$timestamp] Launching Claude Code in project directory: $repoRoot"
     Push-Location $repoRoot
