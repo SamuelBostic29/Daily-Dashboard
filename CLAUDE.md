@@ -1,0 +1,38 @@
+# Good Morning Claude
+
+This project is a personal daily briefing tool that runs via Windows Task Scheduler at 7:30 AM weekdays. When launched, Claude should execute the morning briefing workflow below.
+
+## Morning Briefing Workflow
+
+When prompted to "Run the morning briefing", execute the following data collection steps, then generate the HTML dashboard.
+
+### Step 1: Unread Emails
+
+Use the `mcp__claude_ai_Microsoft_365__outlook_email_search` tool to fetch unread emails from the inbox.
+
+Collect for each email:
+- Sender name and email address
+- Subject line
+- Received timestamp
+- Preview snippet (first ~100 characters of the body)
+- Deep-link URL to open the message in Outlook
+
+Group emails by conversation/thread where possible.
+
+### Step 2: Generate Dashboard
+
+Once all data is collected, generate a self-contained HTML dashboard file and open it in the default browser. See the Dashboard section below for format details.
+
+## Dashboard Format
+
+Generate a single self-contained HTML file (inline CSS/JS, no external dependencies) at `dashboard/briefing.html`.
+
+The dashboard should include:
+- **Header** with the current date and time of generation
+- **Emails section** with badge count, showing each email's sender, subject, time, and preview
+- Each item should be clickable (links to the original item)
+- Items can be dismissed per session (use localStorage, resets next morning)
+- Clean, professional dark theme
+- Keyboard navigation between sections
+
+After generating the file, open it with `Start-Process` (on Windows).
