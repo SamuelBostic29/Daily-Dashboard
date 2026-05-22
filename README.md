@@ -18,7 +18,7 @@ Everything is rendered in a local GUI dashboard so you can triage, prioritize, a
 ## Features
 
 ### Scheduled Morning Trigger
-- Windows Task Scheduler job runs at 07:30 daily (catches up on logon if laptop was asleep)
+- Windows Task Scheduler job runs at 07:30 weekdays (catches up on logon if laptop was asleep)
 - Launches a PowerShell process that bootstraps a Claude Code session
 - Configurable wake time and days of week
 

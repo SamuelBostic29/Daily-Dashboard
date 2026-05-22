@@ -13,10 +13,10 @@ function Get-ScheduleConfig {
         Write-Error "Config file not found at: $configPath"
         exit 1
     }
-    return Get-Content $configPath | ConvertFrom-Json
+    return Get-Content -Raw $configPath | ConvertFrom-Json
 }
 
-function Register-GoodMorningTask {
+function Get-TaskComponents {
     $config = Get-ScheduleConfig
     [string[]]$timeParts = $config.time -split ":"
     [int]$hour = $timeParts[0]
@@ -48,7 +48,6 @@ function Register-GoodMorningTask {
         -AllowStartIfOnBatteries `
         -DontStopIfGoingOnBatteries `
         -StartWhenAvailable `
-        -RunOnlyIfNetworkAvailable `
         -ExecutionTimeLimit (New-TimeSpan -Hours 1)
 
     $principal = New-ScheduledTaskPrincipal `
@@ -56,21 +55,33 @@ function Register-GoodMorningTask {
         -LogonType Interactive `
         -RunLevel Limited
 
+    return @{
+        Action      = $taskAction
+        Trigger     = $trigger
+        Settings    = $settings
+        Principal   = $principal
+        Config      = $config
+    }
+}
+
+function Register-GoodMorningTask {
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($null -ne $existing) {
         Write-Host "Task '$taskName' already exists. Use '-Action update' to modify or '-Action unregister' to remove."
         return
     }
 
+    $components = Get-TaskComponents
+
     Register-ScheduledTask `
         -TaskName $taskName `
-        -Action $taskAction `
-        -Trigger $trigger `
-        -Settings $settings `
-        -Principal $principal `
-        -Description "Good Morning Claude - Daily briefing session at $($config.time)" | Out-Null
+        -Action $components.Action `
+        -Trigger $components.Trigger `
+        -Settings $components.Settings `
+        -Principal $components.Principal `
+        -Description "Good Morning Claude - Daily briefing session at $($components.Config.time)" | Out-Null
 
-    Write-Host "Registered '$taskName' - runs at $($config.time) on $($config.daysOfWeek -join ', ')"
+    Write-Host "Registered '$taskName' - runs at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')"
     Write-Host "Missed runs will execute at next logon (StartWhenAvailable enabled)."
 }
 
@@ -92,8 +103,16 @@ function Update-GoodMorningTask {
         return
     }
 
-    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
-    Register-GoodMorningTask
+    $components = Get-TaskComponents
+
+    Set-ScheduledTask `
+        -TaskName $taskName `
+        -Action $components.Action `
+        -Trigger $components.Trigger `
+        -Settings $components.Settings `
+        -Principal $components.Principal | Out-Null
+
+    Write-Host "Updated '$taskName' - runs at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')"
 }
 
 switch ($Action) {
