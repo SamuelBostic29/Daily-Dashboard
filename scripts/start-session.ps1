@@ -26,6 +26,7 @@ try {
     & $claudePath --project $repoRoot --dangerously-skip-permissions --prompt $prompt
     if ($LASTEXITCODE -ne 0) {
         Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Claude exited with code $LASTEXITCODE"
+        exit $LASTEXITCODE
     }
     Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Session ended."
 }
