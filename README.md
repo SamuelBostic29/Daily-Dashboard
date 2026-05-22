@@ -1,10 +1,10 @@
 # Good Morning, Claude
 
-An automated daily briefing tool that spins up a Claude Code session every morning at 8:00 AM, aggregates your work context from M365 and GitHub, and presents it in a unified GUI dashboard — so you start every day fully informed.
+An automated daily briefing tool that spins up a Claude Code session every morning at 7:30 AM, aggregates your work context from M365 and GitHub, and presents it in a unified GUI dashboard — so you start every day fully informed.
 
 ## What It Does
 
-Each morning at 8:00 AM a PowerShell scheduled task fires, launches Claude Code, and surfaces:
+Each morning at 7:30 AM a PowerShell scheduled task fires, launches Claude Code, and surfaces:
 
 | Source | Data |
 |--------|------|
@@ -18,7 +18,7 @@ Everything is rendered in a local GUI dashboard so you can triage, prioritize, a
 ## Features
 
 ### Scheduled Morning Trigger
-- Windows Task Scheduler job runs at 08:00 daily
+- Windows Task Scheduler job runs at 07:30 weekdays (catches up on logon if laptop was asleep)
 - Launches a PowerShell process that bootstraps a Claude Code session
 - Configurable wake time and days of week
 
@@ -78,7 +78,7 @@ cd good-morning-claude
 # Install dependencies
 # (instructions TBD per chosen stack)
 
-# Register the 8 AM scheduled task
+# Register the 7:30 AM scheduled task
 .\scripts\register-task.ps1
 ```
 
