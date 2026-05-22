@@ -1,3 +1,5 @@
+$ErrorActionPreference = 'Stop'
+
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $logsDir = Join-Path $repoRoot "logs"
 $logFile = Join-Path $logsDir "startup.log"
@@ -15,7 +17,7 @@ $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 try {
     Add-Content -Path $logFile -Value "[$timestamp] Starting Good Morning Claude session..."
 
-    $claudePath = (Get-Command claude -ErrorAction Stop).Source
+    $claudePath = (Get-Command claude).Source
     Add-Content -Path $logFile -Value "[$timestamp] Found Claude CLI at: $claudePath"
 
     $prompt = "Run the morning briefing. Gather all data sources and generate the dashboard."
