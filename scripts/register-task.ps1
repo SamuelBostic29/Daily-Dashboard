@@ -79,7 +79,7 @@ function Register-GoodMorningTask {
         -Trigger $components.Trigger `
         -Settings $components.Settings `
         -Principal $components.Principal `
-        -Description "Good Morning Claude - Daily briefing session at $($components.Config.time)" | Out-Null
+        -Description "Good Morning Claude - Briefing session at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')" | Out-Null
 
     Write-Host "Registered '$taskName' - runs at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')"
     Write-Host "Missed runs will execute at next logon (StartWhenAvailable enabled)."
