@@ -33,12 +33,12 @@ Categorize items as: DMs, @mentions, or channel notifications.
 
 Do not mark anything as read — the user manages read state in Teams.
 
-### Step 3: GitHub PR Review Queue
+### Step 3: GitHub PR Queue
 
-Use the `gh` CLI to fetch open pull requests where your review is requested:
+Use the `gh` CLI to fetch all open PRs the user needs to address — both their own and PRs they need to review:
 
 ```
-gh search prs --review-requested=@me --state=open --json title,repository,number,url,author,createdAt,statusCheckRollup
+gh search prs "is:open is:pr involves:SBosticParadigm archived:false" --json title,repository,number,url,author,createdAt,statusCheckRollup
 ```
 
 Collect for each PR:
@@ -49,7 +49,9 @@ Collect for each PR:
 - Age (days since opened)
 - CI check summary (passing/failing/pending)
 
-Exclude PRs where the user has already submitted a review.
+Split results into two groups:
+- **My PRs** — PRs authored by `SBosticParadigm`
+- **Needs My Review** — all other PRs in the results
 
 ### Step 4: Generate Dashboard
 
@@ -63,7 +65,7 @@ The dashboard should include:
 - **Header** with the current date and time of generation
 - **Emails section** with badge count, showing each email's sender, subject, time, and preview
 - **Teams section** with badge count, showing DMs, @mentions, and channel notifications with sender/channel, preview, and time
-- **PR Review Queue section** with badge count, showing each PR's title, repo, author, age, and CI status
+- **PR Queue section** with badge count, split into "My PRs" and "Needs My Review" sub-groups, showing each PR's title, repo, author, age, and CI status
 - Each item should be clickable (links to the original item)
 - Items can be dismissed per session (use localStorage, resets next morning)
 - Clean, professional dark theme
