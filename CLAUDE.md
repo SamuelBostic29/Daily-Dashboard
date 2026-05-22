@@ -19,7 +19,21 @@ Collect for each email:
 
 Group emails by conversation/thread where possible.
 
-### Step 2: Generate Dashboard
+### Step 2: Teams Notifications
+
+Use the `mcp__claude_ai_Microsoft_365__chat_message_search` tool to fetch unread Teams activity — direct messages, @mentions, and channel notifications.
+
+Collect for each item:
+- Sender or channel name
+- Message preview
+- Timestamp
+- Deep-link URL to open the message in Teams
+
+Categorize items as: DMs, @mentions, or channel notifications.
+
+Do not mark anything as read — the user manages read state in Teams.
+
+### Step 3: Generate Dashboard
 
 Once all data is collected, generate a self-contained HTML dashboard file and open it in the default browser. See the Dashboard section below for format details.
 
@@ -30,6 +44,7 @@ Generate a single self-contained HTML file (inline CSS/JS, no external dependenc
 The dashboard should include:
 - **Header** with the current date and time of generation
 - **Emails section** with badge count, showing each email's sender, subject, time, and preview
+- **Teams section** with badge count, showing DMs, @mentions, and channel notifications with sender/channel, preview, and time
 - Each item should be clickable (links to the original item)
 - Items can be dismissed per session (use localStorage, resets next morning)
 - Clean, professional dark theme
