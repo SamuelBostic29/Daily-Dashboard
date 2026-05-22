@@ -73,21 +73,63 @@ Sort by last-updated descending so stale issues surface clearly.
 
 ### Step 5: Generate Dashboard
 
-Once all data is collected, generate a self-contained HTML dashboard file and open it in the default browser. See the Dashboard section below for format details.
+Read the template at `dashboard/template.html` and replace the placeholders with the collected data, then write the result to `dashboard/briefing.html` and open it in the browser.
 
-## Dashboard Format
+**Placeholders to replace:**
 
-Generate a single self-contained HTML file (inline CSS/JS, no external dependencies) at `dashboard/briefing.html`.
+- `{{GENERATED_AT}}` — current date and time (e.g., "Thursday, May 22, 2026 at 7:32 AM")
+- `{{EMAILS_CONTENT}}` — email items HTML
+- `{{TEAMS_CONTENT}}` — Teams items HTML
+- `{{PRS_CONTENT}}` — PR items HTML
+- `{{ISSUES_CONTENT}}` — assigned issues items HTML
 
-The dashboard should include:
-- **Header** with the current date and time of generation
-- **Emails section** with badge count, showing each email's sender, subject, time, and preview
-- **Teams section** with badge count, showing DMs, @mentions, and channel notifications with sender/channel, preview, and time
-- **PR Queue section** with badge count, split into "My PRs" and "Needs My Review" sub-groups, showing each PR's title, repo, author, age, and CI status
-- **Assigned Issues section** with badge count, showing each issue's title, repo, labels, milestone, and days since last activity
-- Each item should be clickable (links to the original item)
-- Items can be dismissed per session (use localStorage, resets next morning)
-- Clean, professional dark theme
-- Keyboard navigation between sections
+**Item HTML format** — each item should use this structure:
 
-After generating the file, open it with `Start-Process` (on Windows).
+```html
+<a class="item" href="{{URL}}" target="_blank" data-item-id="{{UNIQUE_ID}}">
+    <div class="item-row">
+        <span class="item-primary">{{TITLE}}</span>
+        <button class="dismiss-btn" onclick="dismissItem('{{UNIQUE_ID}}', event)">&times;</button>
+    </div>
+    <div class="item-meta">{{META_LINE}}</div>
+</a>
+```
+
+- `data-item-id` must be unique per item (use a hash or combo of source + id)
+- `item-primary` is the main text (subject line, PR title, issue title, message preview)
+- `item-meta` is the secondary line (sender, repo name, timestamp, labels, etc.)
+
+**PR sub-groups** — use this before each group in the PR section:
+
+```html
+<div class="sub-group-label">My PRs</div>
+<!-- PR items -->
+<div class="sub-group-label">Needs My Review</div>
+<!-- PR items -->
+```
+
+**Labels** (for issues) — use:
+
+```html
+<span class="label-tag">label-name</span>
+```
+
+**CI status** (for PRs) — use the appropriate class:
+
+```html
+<span class="ci-pass">Passing</span>
+<span class="ci-fail">Failing</span>
+<span class="ci-pending">Pending</span>
+```
+
+**Empty sections** — if a section has no items, use:
+
+```html
+<div class="empty-state">No items</div>
+```
+
+**After writing the file**, update the badge counts in the HTML (set the badge text to the number of items in each section), then open the file:
+
+```powershell
+Start-Process "dashboard/briefing.html"
+```
