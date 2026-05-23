@@ -20,11 +20,11 @@ try {
     $claudePath = (Get-Command claude).Source
     Add-Content -Path $logFile -Value "[$timestamp] Found Claude CLI at: $claudePath"
 
-    $prompt = "Run the morning briefing."
+    $prompt = "Run the morning briefing. Spin up 3 agents in parallel to collect data as described in CLAUDE.md, then generate the dashboard."
 
     Add-Content -Path $logFile -Value "[$timestamp] Launching Claude Code in project directory: $repoRoot"
     Push-Location $repoRoot
-    & $claudePath --dangerously-skip-permissions -p $prompt
+    & $claudePath --dangerously-skip-permissions --model sonnet $prompt
     Pop-Location
     if ($LASTEXITCODE -ne 0) {
         Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Claude exited with code $LASTEXITCODE"

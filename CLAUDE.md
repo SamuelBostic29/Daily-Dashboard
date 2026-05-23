@@ -4,90 +4,70 @@ This project is a personal daily briefing tool that runs via Windows Task Schedu
 
 ## Morning Briefing Workflow
 
-When prompted to "Run the morning briefing", execute the following data collection steps, then generate the HTML dashboard.
+When prompted to "Run the morning briefing", spin up **3 agents in parallel** — one for each data source below. **Each agent returns a JSON array/object** (not HTML). The orchestrator then writes `dashboard/data.js` and opens `dashboard/template.html`.
 
-### Step 1: Unread Emails
+### Agent 1: Unread Emails
 
-Use the `mcp__claude_ai_Microsoft_365__outlook_email_search` tool to fetch unread emails from the inbox.
+Use the `mcp__claude_ai_Microsoft_365__outlook_email_search` tool to fetch the 25 most recent unread emails. Search for `isRead:false` with `limit: 25`. Do NOT paginate — one call only.
 
-Collect for each email:
-- Sender name and email address
-- Subject line
-- Received timestamp
-- Preview snippet (first ~100 characters of the body)
-- Deep-link URL to open the message in Outlook
+**Return a JSON array** where each item has:
+- `id` — `"email-"` + message id
+- `title` — email subject line
+- `meta` — sender name + " — " + timestamp
+- `url` — deep-link to the message in Outlook (or `https://outlook.office365.com/mail/inbox` as fallback)
 
-Group emails by conversation/thread where possible.
+### Agent 2: GitHub PR Queue
 
-### Step 2: Teams Notifications
+Use `gh api` to fetch all open PRs the user needs to address. Do NOT use `gh search prs` — it returns empty with OAuth tokens.
 
-Use the `mcp__claude_ai_Microsoft_365__chat_message_search` tool to fetch unread Teams activity — direct messages, @mentions, and channel notifications.
-
-Collect for each item:
-- Sender or channel name
-- Message preview
-- Timestamp
-- Deep-link URL to open the message in Teams
-
-Categorize items as: DMs, @mentions, or channel notifications.
-
-Do not mark anything as read — the user manages read state in Teams.
-
-### Step 3: GitHub PR Queue
-
-Use the `gh` CLI to fetch all open PRs the user needs to address — both their own and PRs they need to review:
-
-```
-gh search prs "is:open is:pr involves:SBosticParadigm archived:false" --json title,repository,number,url,author,createdAt,statusCheckRollup
+```bash
+gh api search/issues --method GET -f q="is:open is:pr involves:SBosticParadigm archived:false" -f per_page=100 --jq '.items[] | {title: .title, repo: (.repository_url | split("/") | .[-2:] | join("/")), number: .number, url: .html_url, author: .user.login, created_at: .created_at}'
 ```
 
-Collect for each PR:
-- Title
-- Repository full name
-- PR number and URL
-- Author
-- Age (days since opened)
-- CI check summary (passing/failing/pending)
+**Return a JSON object** with two arrays:
+- `mine` — PRs authored by `SBosticParadigm`
+- `review` — all other PRs
 
-Split results into two groups:
-- **My PRs** — PRs authored by `SBosticParadigm`
-- **Needs My Review** — all other PRs in the results
+Each item has:
+- `id` — `"pr-"` + repo + `-` + number
+- `title` — PR title
+- `meta` — repo · #number · author · Xd ago
+- `url` — PR URL
 
-### Step 4: GitHub Assigned Issues
+### Agent 3: GitHub Assigned Issues
 
-Use the `gh` CLI to fetch all open issues assigned to the user:
+Use `gh api` to fetch all open issues assigned to the user. Do NOT use `gh search issues` — it returns empty with OAuth tokens.
 
-```
-gh search issues "is:issue is:open assignee:SBosticParadigm archived:false" --sort updated --json title,repository,number,url,labels,milestone,assignees,updatedAt
+```bash
+gh api search/issues --method GET -f q="is:issue is:open assignee:SBosticParadigm archived:false" -f sort=updated -f order=desc -f per_page=100 --jq '.items[] | {title: .title, repo: (.repository_url | split("/") | .[-2:] | join("/")), number: .number, url: .html_url, labels: [.labels[].name], updated_at: .updated_at}'
 ```
 
-Collect for each issue:
-- Title
-- Repository full name
-- Issue number and URL
-- Labels
-- Milestone (if any)
-- Days since last activity
+**Return a JSON array** where each item has:
+- `id` — `"issue-"` + repo + `-` + number
+- `title` — issue title
+- `meta` — repo · #number · Xd ago
+- `url` — issue URL
+- `labels` — array of label name strings
 
-Sort by last-updated descending so stale issues surface clearly.
+Sort by last-updated descending.
 
-### Step 5: Generate Dashboard
+### After All Agents Complete: Write Data and Open Dashboard
 
-Once all data is collected, generate a self-contained HTML dashboard file and open it in the default browser. See the Dashboard section below for format details.
+Write `dashboard/data.js` with this exact format:
 
-## Dashboard Format
+```js
+window.BRIEFING_DATA = {
+    generatedAt: "MM/DD/YYYY h:mm AM/PM",
+    emails: [ ...Agent 1 results... ],
+    prs: { mine: [...], review: [...] },
+    issues: [ ...Agent 3 results... ]
+};
+```
 
-Generate a single self-contained HTML file (inline CSS/JS, no external dependencies) at `dashboard/briefing.html`.
+Then open the dashboard:
 
-The dashboard should include:
-- **Header** with the current date and time of generation
-- **Emails section** with badge count, showing each email's sender, subject, time, and preview
-- **Teams section** with badge count, showing DMs, @mentions, and channel notifications with sender/channel, preview, and time
-- **PR Queue section** with badge count, split into "My PRs" and "Needs My Review" sub-groups, showing each PR's title, repo, author, age, and CI status
-- **Assigned Issues section** with badge count, showing each issue's title, repo, labels, milestone, and days since last activity
-- Each item should be clickable (links to the original item)
-- Items can be dismissed per session (use localStorage, resets next morning)
-- Clean, professional dark theme
-- Keyboard navigation between sections
+```powershell
+Start-Process "dashboard/template.html"
+```
 
-After generating the file, open it with `Start-Process` (on Windows).
+Do NOT modify `template.html`. Do NOT generate HTML. Just write the `data.js` file and open the template.
