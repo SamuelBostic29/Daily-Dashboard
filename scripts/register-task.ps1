@@ -6,7 +6,7 @@ param(
 $taskName = "GoodMorningClaude"
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $configPath = Join-Path $repoRoot "config\schedule.json"
-$startScript = Join-Path $repoRoot "scripts\start-session.ps1"
+$hiddenScript = Join-Path $repoRoot "scripts\run-hidden.vbs"
 
 function Get-ScheduleConfig {
     if (-not (Test-Path $configPath)) {
@@ -30,19 +30,9 @@ function Get-TaskComponents {
     [int]$hour = $startParts[0]
     [int]$minute = $startParts[1]
 
-    $pwshPath = (Get-Command pwsh -ErrorAction SilentlyContinue)
-    if ($null -eq $pwshPath) {
-        $pwshPath = (Get-Command powershell -ErrorAction SilentlyContinue)
-    }
-    if ($null -eq $pwshPath) {
-        Write-Error "Neither 'pwsh' nor 'powershell' found on PATH. Install PowerShell and try again."
-        exit 1
-    }
-    $pwshPath = $pwshPath.Source
-
     $taskAction = New-ScheduledTaskAction `
-        -Execute $pwshPath `
-        -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$startScript`"" `
+        -Execute "wscript.exe" `
+        -Argument "`"$hiddenScript`"" `
         -WorkingDirectory $repoRoot
 
     [System.DayOfWeek[]]$days = $config.daysOfWeek | ForEach-Object { [System.DayOfWeek]$_ }
