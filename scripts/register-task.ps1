@@ -16,6 +16,14 @@ function Get-ScheduleConfig {
     return Get-Content -Raw $configPath | ConvertFrom-Json
 }
 
+function Get-TaskDescription {
+    param([PSCustomObject]$Config)
+    if ($null -ne $Config.intervalMinutes -and $null -ne $Config.endTime) {
+        return "every $($Config.intervalMinutes)min from $($Config.startTime) to $($Config.endTime) on $($Config.daysOfWeek -join ', ')"
+    }
+    return "runs at $($Config.startTime) on $($Config.daysOfWeek -join ', ')"
+}
+
 function Get-TaskComponents {
     $config = Get-ScheduleConfig
     [string[]]$startParts = $config.startTime -split ":"
@@ -44,10 +52,24 @@ function Get-TaskComponents {
         -DaysOfWeek $days `
         -At ("{0:D2}:{1:D2}" -f $hour, $minute)
 
+    if ($null -ne $config.intervalMinutes -and $null -ne $config.endTime) {
+        [string[]]$endParts = $config.endTime -split ":"
+        [int]$endHour = $endParts[0]
+        [int]$endMinute = $endParts[1]
+        [TimeSpan]$duration = New-TimeSpan -Hours ($endHour - $hour) -Minutes ($endMinute - $minute)
+        [TimeSpan]$interval = New-TimeSpan -Minutes ([int]$config.intervalMinutes)
+
+        $repetition = (New-ScheduledTaskTrigger -Once -At "00:00" `
+            -RepetitionInterval $interval `
+            -RepetitionDuration $duration).Repetition
+        $trigger.Repetition = $repetition
+    }
+
     $settings = New-ScheduledTaskSettingsSet `
         -AllowStartIfOnBatteries `
         -DontStopIfGoingOnBatteries `
         -StartWhenAvailable `
+        -MultipleInstances IgnoreNew `
         -ExecutionTimeLimit (New-TimeSpan -Hours 1)
 
     $principal = New-ScheduledTaskPrincipal `
@@ -79,9 +101,9 @@ function Register-GoodMorningTask {
         -Trigger $components.Trigger `
         -Settings $components.Settings `
         -Principal $components.Principal `
-        -Description "Good Morning Claude - Briefing session at $($components.Config.startTime) on $($components.Config.daysOfWeek -join ', ')" | Out-Null
+        -Description (Get-TaskDescription $components.Config) | Out-Null
 
-    Write-Host "Registered '$taskName' - runs at $($components.Config.startTime) on $($components.Config.daysOfWeek -join ', ')"
+    Write-Host "Registered '$taskName' - $(Get-TaskDescription $components.Config)"
     Write-Host "Missed runs will execute at next logon (StartWhenAvailable enabled)."
 }
 
@@ -112,7 +134,7 @@ function Update-GoodMorningTask {
         -Settings $components.Settings `
         -Principal $components.Principal | Out-Null
 
-    Write-Host "Updated '$taskName' - runs at $($components.Config.startTime) on $($components.Config.daysOfWeek -join ', ')"
+    Write-Host "Updated '$taskName' - $(Get-TaskDescription $components.Config)"
 }
 
 switch ($Action) {
