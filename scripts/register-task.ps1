@@ -18,9 +18,9 @@ function Get-ScheduleConfig {
 
 function Get-TaskComponents {
     $config = Get-ScheduleConfig
-    [string[]]$timeParts = $config.time -split ":"
-    [int]$hour = $timeParts[0]
-    [int]$minute = $timeParts[1]
+    [string[]]$startParts = $config.startTime -split ":"
+    [int]$hour = $startParts[0]
+    [int]$minute = $startParts[1]
 
     $pwshPath = (Get-Command pwsh -ErrorAction SilentlyContinue)
     if ($null -eq $pwshPath) {
@@ -79,9 +79,9 @@ function Register-GoodMorningTask {
         -Trigger $components.Trigger `
         -Settings $components.Settings `
         -Principal $components.Principal `
-        -Description "Good Morning Claude - Briefing session at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')" | Out-Null
+        -Description "Good Morning Claude - Briefing session at $($components.Config.startTime) on $($components.Config.daysOfWeek -join ', ')" | Out-Null
 
-    Write-Host "Registered '$taskName' - runs at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')"
+    Write-Host "Registered '$taskName' - runs at $($components.Config.startTime) on $($components.Config.daysOfWeek -join ', ')"
     Write-Host "Missed runs will execute at next logon (StartWhenAvailable enabled)."
 }
 
@@ -112,7 +112,7 @@ function Update-GoodMorningTask {
         -Settings $components.Settings `
         -Principal $components.Principal | Out-Null
 
-    Write-Host "Updated '$taskName' - runs at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')"
+    Write-Host "Updated '$taskName' - runs at $($components.Config.startTime) on $($components.Config.daysOfWeek -join ', ')"
 }
 
 switch ($Action) {
