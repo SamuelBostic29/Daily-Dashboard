@@ -46,7 +46,11 @@
         header .timestamp {
             font-size: 14px;
             color: #6b7280;
+            transition: color 0.3s;
         }
+
+        header .timestamp.stale { color: #f59e0b; }
+        header .timestamp.stale::after { content: " (stale)"; }
 
         .sections {
             display: grid;
@@ -345,6 +349,70 @@
                 headers[currentSection].focus();
             }
         });
+
+        // --- Auto-reload ---
+        var CHECK_INTERVAL_MS = 60000;
+        var STALE_AFTER_MS = 3600000;
+        var lastUpdateTime = Date.now();
+        var currentGeneratedAt = data.generatedAt;
+
+        function loadScript(src, callback) {
+            var script = document.createElement('script');
+            script.src = src + '?_=' + Date.now();
+            script.onload = function() { script.remove(); if (callback) callback(); };
+            script.onerror = function() { script.remove(); if (callback) callback(); };
+            document.head.appendChild(script);
+        }
+
+        function loadScripts(sources, callback) {
+            var remaining = sources.length;
+            if (remaining === 0) { callback(); return; }
+            sources.forEach(function(src) {
+                loadScript(src, function() {
+                    remaining--;
+                    if (remaining === 0) callback();
+                });
+            });
+        }
+
+        function refreshData() {
+            var scrollY = window.scrollY;
+            loadScripts(['data-emails.js', 'data-prs.js', 'data-issues.js'], function() {
+                currentGeneratedAt = window.BRIEFING_META.generatedAt;
+                data = {
+                    generatedAt: currentGeneratedAt,
+                    emails: window.BRIEFING_EMAILS || [],
+                    prs: window.BRIEFING_PRS || { mine: [], review: [] },
+                    issues: window.BRIEFING_ISSUES || []
+                };
+                window.BRIEFING_DATA = data;
+
+                var tsEl = document.getElementById('timestamp');
+                tsEl.textContent = currentGeneratedAt;
+                tsEl.classList.remove('stale');
+
+                renderSection('emails', data.emails);
+                renderPRs();
+                renderSection('issues', data.issues);
+                applyDismissed();
+
+                window.scrollTo(0, scrollY);
+                lastUpdateTime = Date.now();
+            });
+        }
+
+        function checkForUpdates() {
+            loadScript('data-meta.js', function() {
+                if (window.BRIEFING_META && window.BRIEFING_META.generatedAt !== currentGeneratedAt) {
+                    refreshData();
+                }
+                if (Date.now() - lastUpdateTime > STALE_AFTER_MS) {
+                    document.getElementById('timestamp').classList.add('stale');
+                }
+            });
+        }
+
+        setInterval(checkForUpdates, CHECK_INTERVAL_MS);
     </script>
 </body>
 </html>
