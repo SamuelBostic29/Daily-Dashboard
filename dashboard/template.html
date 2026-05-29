@@ -352,7 +352,13 @@
 
         // --- Auto-reload ---
         var CHECK_INTERVAL_MS = 60000;
-        var STALE_AFTER_MS = 3600000;
+        // Stale threshold tracks the configured poll interval (2x) so it stays correct
+        // when intervalMinutes changes in config/schedule.json; defaults to 30min.
+        function staleAfterMs() {
+            var min = (window.BRIEFING_META && window.BRIEFING_META.intervalMinutes) || 30;
+            return min * 2 * 60000;
+        }
+        var STALE_AFTER_MS = staleAfterMs();
         var lastUpdateTime = Date.now();
         var currentGeneratedAt = data.generatedAt;
 
@@ -379,6 +385,7 @@
             var scrollY = window.scrollY;
             loadScripts(['data-emails.js', 'data-prs.js', 'data-issues.js'], function() {
                 currentGeneratedAt = window.BRIEFING_META.generatedAt;
+                STALE_AFTER_MS = staleAfterMs();
                 data = {
                     generatedAt: currentGeneratedAt,
                     emails: window.BRIEFING_EMAILS || [],

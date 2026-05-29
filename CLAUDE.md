@@ -116,11 +116,13 @@ Return only a brief confirmation. Do NOT return the JSON payload to the orchestr
 
 **Step 1.** Delete the target file: `rm -f dashboard/data-meta.js`
 
-**Step 2.** Write `dashboard/data-meta.js` with this exact format:
+**Step 2.** Write `dashboard/data-meta.js` with this exact format, reading `intervalMinutes` from `config/schedule.json`:
 
 ```js
-window.BRIEFING_META = { generatedAt: "MM/DD/YYYY h:mm AM/PM" };
+window.BRIEFING_META = { generatedAt: "MM/DD/YYYY h:mm AM/PM", intervalMinutes: 30 };
 ```
+
+The dashboard sizes its "(stale)" threshold at 2x `intervalMinutes`, so it must match the configured poll interval. If the value is absent the dashboard falls back to 30.
 
 Then open the dashboard:
 
