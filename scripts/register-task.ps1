@@ -3,7 +3,7 @@ param(
     [string]$Action = "register"
 )
 
-$taskName = "GoodMorningClaude"
+$taskName = "DailyDashboard"
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $configPath = Join-Path $repoRoot "config\schedule.json"
 $startScript = Join-Path $repoRoot "scripts\start-session.ps1"
@@ -64,7 +64,7 @@ function Get-TaskComponents {
     }
 }
 
-function Register-GoodMorningTask {
+function Register-DailyDashboardTask {
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($null -ne $existing) {
         Write-Host "Task '$taskName' already exists. Use '-Action update' to modify or '-Action unregister' to remove."
@@ -79,13 +79,13 @@ function Register-GoodMorningTask {
         -Trigger $components.Trigger `
         -Settings $components.Settings `
         -Principal $components.Principal `
-        -Description "Good Morning Claude - Briefing session at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')" | Out-Null
+        -Description "Daily Dashboard - Briefing session at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')" | Out-Null
 
     Write-Host "Registered '$taskName' - runs at $($components.Config.time) on $($components.Config.daysOfWeek -join ', ')"
     Write-Host "Missed runs will execute at next logon (StartWhenAvailable enabled)."
 }
 
-function Unregister-GoodMorningTask {
+function Unregister-DailyDashboardTask {
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($null -eq $existing) {
         Write-Host "Task '$taskName' does not exist."
@@ -96,7 +96,7 @@ function Unregister-GoodMorningTask {
     Write-Host "Unregistered '$taskName'."
 }
 
-function Update-GoodMorningTask {
+function Update-DailyDashboardTask {
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
     if ($null -eq $existing) {
         Write-Host "Task '$taskName' does not exist. Use '-Action register' first."
@@ -116,7 +116,7 @@ function Update-GoodMorningTask {
 }
 
 switch ($Action) {
-    "register"   { Register-GoodMorningTask }
-    "unregister" { Unregister-GoodMorningTask }
-    "update"     { Update-GoodMorningTask }
+    "register"   { Register-DailyDashboardTask }
+    "unregister" { Unregister-DailyDashboardTask }
+    "update"     { Update-DailyDashboardTask }
 }

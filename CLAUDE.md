@@ -1,6 +1,6 @@
-# Good Morning Claude
+# Daily Dashboard
 
-This project is a personal daily briefing tool that runs via Windows Task Scheduler at 7:30 AM weekdays. When launched, Claude should execute the morning briefing workflow below.
+This project is a personal dashboard that refreshes throughout the day (and via Windows Task Scheduler on weekday mornings) to surface your unread email, PR queue, and assigned issues. When launched, Claude should execute the briefing workflow below.
 
 ## Morning Briefing Workflow
 
@@ -18,7 +18,7 @@ rm -f dashboard/<your-target-file>
 
 **Run that command literally.** Do NOT convert the path to an absolute Windows path (`D:\...`). Do NOT add backslashes. Do NOT wrap it in PowerShell (`Test-Path`, `Remove-Item`, `Set-Content`, `New-Item`). Unquoted backslashes in Bash are escape sequences — `D:\SideProjects\...` collapses to a garbage path, `rm -f` silently no-ops, the file stays on disk, and the next Write call fails the harness's "must Read first" guard rail.
 
-The agent's working directory is already `D:\SideProjects\Good-Morning-Claude`, so the relative path `dashboard/<file>` works as-is. (`rm -f` is silent when the file doesn't exist, so it's safe on the first run.) Only after this deletion do you call Write with the new contents. Do NOT use Read + Edit on a stale file — always delete and write fresh.
+The agent's working directory is already `D:\SideProjects\Daily-Dashboard`, so the relative path `dashboard/<file>` works as-is. (`rm -f` is silent when the file doesn't exist, so it's safe on the first run.) Only after this deletion do you call Write with the new contents. Do NOT use Read + Edit on a stale file — always delete and write fresh.
 
 ### Agent 1: Unread Emails
 

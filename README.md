@@ -1,6 +1,6 @@
-# Good Morning, Claude
+# Daily Dashboard
 
-An automated daily briefing tool that spins up a Claude Code session every morning at 7:30 AM, aggregates your work context from M365 and GitHub, and presents it in a unified GUI dashboard — so you start every day fully informed.
+A personal dashboard that aggregates your work context from M365 and GitHub and presents it in a unified local view. A Claude Code session refreshes it throughout the day (and on a weekday-morning scheduled task) — so you're always up to date without jumping between tabs.
 
 ## What It Does
 
@@ -72,8 +72,8 @@ Everything is rendered in a local GUI dashboard so you can triage, prioritize, a
 ### Quick Start
 ```powershell
 # Clone the repo
-git clone https://github.com/SamuelBostic29/good-morning-claude.git
-cd good-morning-claude
+git clone https://github.com/SamuelBostic29/daily-dashboard.git
+cd daily-dashboard
 
 # Install dependencies
 # (instructions TBD per chosen stack)
@@ -84,7 +84,7 @@ cd good-morning-claude
 
 ## Project Status
 
-Early development. See [Issues](https://github.com/SamuelBostic29/good-morning-claude/issues) for the current backlog.
+Early development. See [Issues](https://github.com/SamuelBostic29/daily-dashboard/issues) for the current backlog.
 
 ## License
 
