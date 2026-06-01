@@ -15,7 +15,7 @@ if ((Get-Date).DayOfWeek -eq [DayOfWeek]::Monday -and (Test-Path $logFile)) {
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 try {
-    Add-Content -Path $logFile -Value "[$timestamp] Starting Good Morning Claude session..."
+    Add-Content -Path $logFile -Value "[$timestamp] Starting Daily Dashboard session..."
 
     $claudePath = (Get-Command claude).Source
     Add-Content -Path $logFile -Value "[$timestamp] Found Claude CLI at: $claudePath"
@@ -35,6 +35,6 @@ try {
 catch {
     $errorMessage = $_.Exception.Message
     Add-Content -Path $logFile -Value "[$timestamp] ERROR: $errorMessage"
-    Write-Error "Good Morning Claude startup failed: $errorMessage"
+    Write-Error "Daily Dashboard startup failed: $errorMessage"
     exit 1
 }
