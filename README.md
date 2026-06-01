@@ -1,90 +1,123 @@
 # Daily Dashboard
 
-A personal dashboard that aggregates your work context from M365 and GitHub and presents it in a unified local view. A Claude Code session refreshes it throughout the day (and on a weekday-morning scheduled task) — so you're always up to date without jumping between tabs.
+A personal dashboard that aggregates your work context from Microsoft 365 and GitHub into a single local view. Instead of being a standalone app, the dashboard is driven by a **Claude Code workflow**: Claude fetches your latest data, writes it to a set of small JavaScript files, and a static HTML template stitches them together into a clean, glanceable page.
+
+Run it whenever you want a fresh read on your day, and let the Windows scheduled task refresh it automatically on weekday mornings.
 
 ## What It Does
 
-Each morning at 7:30 AM a PowerShell scheduled task fires, launches Claude Code, and surfaces:
+When you tell Claude Code to **"Run the morning briefing"**, it spins up three agents in parallel — one per data source — and surfaces:
 
 | Source | Data |
 |--------|------|
-| **Microsoft 365 Mail** | All unread emails since yesterday |
-| **Microsoft Teams** | All unread channel and direct message notifications |
-| **GitHub Pull Requests** | Open PRs across all repos where your review is requested |
-| **GitHub Issues** | All issues currently assigned to you, across every repository |
+| **Microsoft 365 Mail** | Your 25 most recent unread emails (AI code-review bot noise filtered out) |
+| **GitHub Pull Requests** | Open PRs you authored *and* PRs that involve you (split into "My PRs" and "Needs My Review") |
+| **GitHub Issues** | All open issues currently assigned to you, across every accessible repo |
 
-Everything is rendered in a local GUI dashboard so you can triage, prioritize, and act without jumping between tabs.
+Each item is rendered in a local dashboard with click-through links to the original, per-day dismiss tracking, and a time-of-day-aware greeting — so you can triage without jumping between tabs.
 
-## Features
+## How It Works
 
-### Scheduled Morning Trigger
-- Windows Task Scheduler job runs at 07:30 weekdays (catches up on logon if laptop was asleep)
-- Launches a PowerShell process that bootstraps a Claude Code session
-- Configurable wake time and days of week
+The project has no build step, server, or runtime framework. The moving parts are:
 
-### M365 Email Integration
-- Authenticates via Microsoft Graph API (OAuth 2.0 / device code flow)
-- Fetches unread messages from your inbox
-- Groups by sender and thread for at-a-glance triage
+```
+"Run the morning briefing"  →  Claude Code (CLAUDE.md workflow)
+        │
+        ├─ Agent 1 ── M365 email search (MCP) ──→ dashboard/data-emails.js
+        ├─ Agent 2 ── gh api (PRs)            ──→ dashboard/data-prs.js
+        └─ Agent 3 ── gh api (issues)         ──→ dashboard/data-issues.js
+                                                       │
+   Orchestrator ── writes dashboard/data-meta.js ──────┤
+                └─ opens dashboard/template.html  ◄─────┘
+```
 
-### Microsoft Teams Integration
-- Reads unread activity feed via Microsoft Graph
-- Surfaces direct messages, @mentions, and channel notifications
-- Links directly to each Teams conversation
+1. **`CLAUDE.md`** defines the briefing workflow. Each agent deletes its target data file and writes a fresh one — it never returns JSON to the orchestrator.
+2. **`dashboard/template.html`** is a self-contained page (vanilla HTML/CSS/JS, no dependencies). On load it reads the four `data-*.js` files, each of which assigns a global (`window.BRIEFING_EMAILS`, `window.BRIEFING_PRS`, `window.BRIEFING_ISSUES`, `window.BRIEFING_META`), and stitches them into `window.BRIEFING_DATA` for rendering.
+3. The generated `data-*.js` files are **git-ignored** — they hold your live personal data and are regenerated on every run.
 
-### GitHub PR Review Queue
-- Queries GitHub REST API for PRs requesting your review
-- Works across all organizations and repositories you have access to
-- Shows PR title, repo, age, and CI status
+### Data sources in detail
 
-### GitHub Issues Dashboard
-- Fetches all open issues assigned to you across every accessible repo
-- Filterable by label, repo, and staleness
-- Shows issue title, repo, milestone, and last activity
-
-### GUI Dashboard
-- Single-window local interface (Electron / Tkinter / similar — TBD)
-- Unified inbox view grouping all sources
-- Click-through links to original items
-- Read/dismiss tracking per session
+- **Email** is fetched via the Microsoft 365 MCP tool (`outlook_email_search`) using the query `isRead:false NOT body:"claude[bot]" NOT body:"@Copilot"`, which drops `claude[bot]` and `@Copilot` automated PR-review comments while keeping human messages.
+- **PRs and issues** come from `gh api search/issues` (the GitHub CLI), not `gh search`, which returns empty under OAuth tokens. The queries are scoped to a specific GitHub login — see [Configuration](#configuration) to point them at your own account.
 
 ## Tech Stack
 
 | Layer | Choice |
 |-------|--------|
-| Scheduler | Windows Task Scheduler via PowerShell |
-| Claude interface | Claude Code CLI (`claude` command) |
-| M365 auth | Microsoft Graph SDK / MSAL |
-| GitHub auth | GitHub CLI (`gh`) token or PAT |
-| GUI | TBD (Electron, Tkinter, or web-based local server) |
-| Language | Python or Node.js (TBD) |
+| Orchestration | Claude Code CLI (`claude`) driven by the `CLAUDE.md` workflow |
+| Dashboard UI | Static `template.html` — vanilla HTML/CSS/JS, no framework, no build |
+| Data files | Generated `data-*.js` files assigning `window.BRIEFING_*` globals |
+| Email source | Microsoft 365 MCP server (`outlook_email_search`) |
+| GitHub source | GitHub CLI (`gh api`) |
+| Scheduler | Windows Task Scheduler, configured via PowerShell |
+
+## Repository Layout
+
+```
+CLAUDE.md                  The morning-briefing workflow Claude executes
+config/schedule.json       Scheduled-task time and days of week
+scripts/register-task.ps1  Register / update / unregister the scheduled task
+scripts/start-session.ps1  Launches a Claude Code briefing session (logged)
+dashboard/template.html    The dashboard page (open this to view your briefing)
+dashboard/preview.html     Static design preview with no live data
+dashboard/test-data.js     Sample data for previewing the layout
+dashboard/data-*.js        Generated live data (git-ignored)
+logs/                      start-session.ps1 run logs (git-ignored)
+WorkingFiles/              Free-form notes / General Logs.txt (git-ignored)
+```
 
 ## Setup
 
-> Full setup instructions will be added as features are built out.
-
 ### Prerequisites
-- Claude Code CLI installed (`npm install -g @anthropic-ai/claude-code`)
-- GitHub CLI installed and authenticated (`gh auth login`)
-- Microsoft 365 account with Graph API permissions
-- Python 3.11+ or Node.js 20+
+
+- **Claude Code CLI** — `npm install -g @anthropic-ai/claude-code`
+- **GitHub CLI** — installed and authenticated: `gh auth login`
+- **Microsoft 365 account** connected to Claude via the Microsoft 365 MCP server (provides `outlook_email_search`)
+- **Windows** with PowerShell (for the optional scheduled task)
+
+No language runtime, package install, or build is required — the dashboard is a static file.
 
 ### Quick Start
+
 ```powershell
 # Clone the repo
-git clone https://github.com/SamuelBostic29/daily-dashboard.git
-cd daily-dashboard
+git clone https://github.com/SamuelBostic29/Daily-Dashboard.git
+cd Daily-Dashboard
 
-# Install dependencies
-# (instructions TBD per chosen stack)
-
-# Register the 7:30 AM scheduled task
-.\scripts\register-task.ps1
+# Launch Claude Code in the project directory, then prompt:
+#   Run the morning briefing
+# Claude fetches your data, writes dashboard/data-*.js, and opens the dashboard.
 ```
 
-## Project Status
+To preview the layout without any live data, just open `dashboard/preview.html` (or load `dashboard/test-data.js` into the template).
 
-Early development. See [Issues](https://github.com/SamuelBostic29/daily-dashboard/issues) for the current backlog.
+### Configuration
+
+The GitHub queries in `CLAUDE.md` are scoped to a specific account. To use your own, update the login in both `gh api` queries:
+
+- PRs: `involves:SBosticParadigm` → `involves:<your-login>`
+- Issues: `assignee:SBosticParadigm` → `assignee:<your-login>`
+
+### Scheduling automatic refreshes
+
+`config/schedule.json` controls when the briefing runs automatically:
+
+```json
+{
+  "time": "07:30",
+  "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+}
+```
+
+Register the Windows scheduled task (runs `scripts/start-session.ps1`, which launches a headless Claude Code session and logs to `logs/startup.log`):
+
+```powershell
+.\scripts\register-task.ps1                  # register
+.\scripts\register-task.ps1 -Action update   # apply schedule.json changes
+.\scripts\register-task.ps1 -Action unregister
+```
+
+The task uses `StartWhenAvailable`, so a run missed because the machine was asleep fires at the next logon. Because automated runs are unattended, `start-session.ps1` invokes Claude with `--dangerously-skip-permissions`.
 
 ## License
 
