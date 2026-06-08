@@ -2,7 +2,7 @@
 
 This project is a personal dashboard that refreshes throughout the day (and via Windows Task Scheduler on weekday mornings) to surface your unread email, PR queue, and assigned issues. When launched, Claude should execute the briefing workflow below.
 
-## GitHub account (always work)
+## GitHub accounts (work for briefings, personal otherwise)
 
 The briefing queries Paradigm **work** data (`involves:SBosticParadigm` PRs, `assignee:SBosticParadigm` issues), so its **`gh` data calls use the `SBosticParadigm` account** — never the personal `SamuelBostic29` account, even though this repo is personal-owned.
 

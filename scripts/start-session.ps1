@@ -38,7 +38,8 @@ try {
         Add-Content -Path $logFile -Value $output
         exit $LASTEXITCODE
     }
-    Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $output"
+    Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Briefing output:"
+    Add-Content -Path $logFile -Value $output
     Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Session ended."
 }
 catch {
