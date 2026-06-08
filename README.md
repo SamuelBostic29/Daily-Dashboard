@@ -31,12 +31,13 @@ The project has no build step, server, or runtime framework. The moving parts ar
         ├─ Agent 2 ── gh api (PRs)            ──→ dashboard/data-prs.js
         └─ Agent 3 ── gh api (issues)         ──→ dashboard/data-issues.js
                                                        │
-   Orchestrator ── writes dashboard/data-meta.js ──────┤
-                └─ opens dashboard/template.html  ◄─────┘
+   Orchestrator ── writes dashboard/data-meta.js (last) ─┘
+                                                          │
+   dashboard/template.html ── polls data-meta.js, reloads in place on change
 ```
 
-1. **`CLAUDE.md`** defines the briefing workflow. Each agent deletes its target data file and writes a fresh one — it never returns JSON to the orchestrator.
-2. **`dashboard/template.html`** is a self-contained page (vanilla HTML/CSS/JS, no dependencies). On load it reads the four `data-*.js` files, each of which assigns a global (`window.BRIEFING_EMAILS`, `window.BRIEFING_PRS`, `window.BRIEFING_ISSUES`, `window.BRIEFING_META`), and stitches them into `window.BRIEFING_DATA` for rendering.
+1. **`CLAUDE.md`** defines the briefing workflow. Each agent deletes its target data file and writes a fresh one — it never returns JSON to the orchestrator. The briefing **does not open a browser**: under all-day polling it runs windowless and headless, so opening one would be disruptive.
+2. **`dashboard/template.html`** is a self-contained page (vanilla HTML/CSS/JS, no dependencies). On load it reads the four `data-*.js` files, each of which assigns a global (`window.BRIEFING_EMAILS`, `window.BRIEFING_PRS`, `window.BRIEFING_ISSUES`, `window.BRIEFING_META`), and stitches them into `window.BRIEFING_DATA` for rendering. It then **polls `data-meta.js` once a minute** and, when `generatedAt` changes, reloads all data files and re-renders in place — preserving scroll and dismissed state — so a dashboard left open on a spare screen stays current all day.
 3. The generated `data-*.js` files are **git-ignored** — they hold your live personal data and are regenerated on every run.
 
 ### Data sources in detail
@@ -59,9 +60,10 @@ The project has no build step, server, or runtime framework. The moving parts ar
 
 ```
 CLAUDE.md                  The morning-briefing workflow Claude executes
-config/schedule.json       Scheduled-task time and days of week
+config/schedule.json       Polling schedule: start/end time, interval, days of week
 scripts/register-task.ps1  Register / update / unregister the scheduled task
-scripts/start-session.ps1  Launches a Claude Code briefing session (logged)
+scripts/start-session.ps1  Launches a headless Claude Code briefing session (logged)
+scripts/open-dashboard.ps1 Opens the dashboard once in the interactive session
 dashboard/template.html    The dashboard page (open this to view your briefing)
 dashboard/preview.html     Static design preview with no live data
 dashboard/test-data.js     Sample data for previewing the layout
@@ -90,7 +92,10 @@ cd Daily-Dashboard
 
 # Launch Claude Code in the project directory, then prompt:
 #   Run the morning briefing
-# Claude fetches your data, writes dashboard/data-*.js, and opens the dashboard.
+# Claude fetches your data and writes dashboard/data-*.js.
+
+# Open the dashboard once (it auto-reloads as new data arrives):
+.\scripts\open-dashboard.ps1
 ```
 
 To preview the layout without any live data, just open `dashboard/preview.html` (or load `dashboard/test-data.js` into the template).
@@ -108,10 +113,14 @@ The GitHub queries in `CLAUDE.md` are scoped to a specific account. To use your 
 
 ```json
 {
-  "time": "07:30",
-  "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+  "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  "startTime": "07:30",
+  "endTime": "17:30",
+  "intervalMinutes": 30
 }
 ```
+
+The task fires at `startTime`, then repeats every `intervalMinutes` until `endTime` — an all-day live agenda rather than a one-shot morning snapshot. Omit `intervalMinutes` (or set the legacy `time` key) to fall back to a single daily run.
 
 Register the Windows scheduled task (runs `scripts/start-session.ps1`, which launches a headless Claude Code session and logs to `logs/startup.log`):
 
@@ -121,7 +130,9 @@ Register the Windows scheduled task (runs `scripts/start-session.ps1`, which lau
 .\scripts\register-task.ps1 -Action unregister
 ```
 
-The task uses `StartWhenAvailable`, so a run missed because the machine was asleep fires at the next logon. Because automated runs are unattended, `start-session.ps1` invokes Claude with `--dangerously-skip-permissions`.
+The task runs **only while you're logged on** (no admin rights needed to register). Each poll launches windowless via `conhost.exe --headless powershell.exe -WindowStyle Hidden`, so no console flashes across your screen. It uses `StartWhenAvailable`, so a run missed because the machine was asleep fires when it next can. Because automated runs are unattended, `start-session.ps1` invokes Claude headless (`claude -p`) with `--dangerously-skip-permissions`.
+
+The polls only regenerate the data files — they don't open a browser. Open the dashboard once a day with `scripts/open-dashboard.ps1` (e.g. a Stream Deck shortcut, which also makes it easy to reopen if you close it); it auto-reloads in place as each poll produces fresh data.
 
 ## License
 

@@ -48,6 +48,16 @@
             color: #6b7280;
         }
 
+        header .refresh-status {
+            font-size: 12px;
+            color: #4b5563;
+            margin-top: 4px;
+            min-height: 16px;
+            transition: color 0.3s;
+        }
+
+        header .refresh-status.stale { color: #fbbf24; }
+
         .sections {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -179,6 +189,7 @@
         <header>
             <h1 id="greeting"></h1>
             <div class="timestamp" id="timestamp"></div>
+            <div class="refresh-status" id="refresh-status"></div>
         </header>
 
         <div class="sections">
@@ -234,7 +245,7 @@
             document.title = pick;
         })();
 
-        // --- Render ---
+        // --- State ---
         window.BRIEFING_DATA = {
             generatedAt: (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || '',
             emails: window.BRIEFING_EMAILS || [],
@@ -242,8 +253,16 @@
             issues: window.BRIEFING_ISSUES || []
         };
         var data = window.BRIEFING_DATA;
+        var lastGeneratedAt = data.generatedAt;
+        var lastUpdateMs = Date.now();
+        var CHECK_INTERVAL_MS = 60000; // how often we poll data-meta.js for a new generatedAt
 
-        document.getElementById('timestamp').textContent = data.generatedAt;
+        // --- Dismiss state (per-day) ---
+        var storageKey = 'gmc-dismissed-' + new Date().toISOString().slice(0, 10);
+        Object.keys(localStorage).forEach(function(key) {
+            if (key.startsWith('gmc-dismissed-') && key !== storageKey) localStorage.removeItem(key);
+        });
+        var dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
 
         function escapeHtml(s) {
             return String(s).replace(/[&<>"']/g, function(c) {
@@ -290,17 +309,6 @@
             body.innerHTML = html;
         }
 
-        renderSection('emails', data.emails);
-        renderPRs();
-        renderSection('issues', data.issues);
-
-        // --- Dismiss ---
-        var storageKey = 'gmc-dismissed-' + new Date().toISOString().slice(0, 10);
-        Object.keys(localStorage).forEach(function(key) {
-            if (key.startsWith('gmc-dismissed-') && key !== storageKey) localStorage.removeItem(key);
-        });
-        var dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
-
         function applyDismissed() {
             dismissed.forEach(function(id) {
                 var el = document.querySelector('[data-item-id="' + id + '"]');
@@ -329,7 +337,96 @@
             });
         }
 
-        applyDismissed();
+        function renderAll() {
+            document.getElementById('timestamp').textContent =
+                data.generatedAt ? 'Last refreshed: ' + data.generatedAt : '';
+            renderSection('emails', data.emails);
+            renderPRs();
+            renderSection('issues', data.issues);
+            applyDismissed();
+        }
+
+        renderAll();
+
+        // --- Auto-reload (file:// blocks fetch, so re-inject scripts with a cache-buster) ---
+        function pollIntervalMs() {
+            var mins = (window.BRIEFING_META && window.BRIEFING_META.intervalMinutes) || 30;
+            return mins * 60000;
+        }
+
+        function setRefreshStatus() {
+            var el = document.getElementById('refresh-status');
+            if ((Date.now() - lastUpdateMs) > 2 * pollIntervalMs()) {
+                el.textContent = 'Waiting for update…';
+                el.classList.add('stale');
+            } else {
+                el.textContent = '';
+                el.classList.remove('stale');
+            }
+        }
+
+        function injectScript(src, cb) {
+            // Try a cache-busted URL first (works over http and on most file:// setups). Some
+            // browsers reject the query on file:// (treat it as a missing filename) — fall back
+            // to the bare path, which re-reads from disk since file:// isn't HTTP-cached.
+            var s = document.createElement('script');
+            s.src = src + '?v=' + Date.now();
+            s.onload = function() { s.remove(); cb(true); };
+            s.onerror = function() {
+                s.remove();
+                var bare = document.createElement('script');
+                bare.src = src;
+                bare.onload = function() { bare.remove(); cb(true); };
+                bare.onerror = function() { bare.remove(); cb(false); };
+                document.head.appendChild(bare);
+            };
+            document.head.appendChild(s);
+        }
+
+        function reloadData() {
+            // Preserve per-section scroll and page position across the re-render.
+            var scrolls = {};
+            document.querySelectorAll('.section-body').forEach(function(b) { scrolls[b.id] = b.scrollTop; });
+            var pageY = window.scrollY;
+
+            // data-meta.js is written last by the briefing, so the data files are already fresh.
+            var files = ['data-emails.js', 'data-prs.js', 'data-issues.js'];
+            var pending = files.length;
+            files.forEach(function(f) {
+                injectScript(f, function() {
+                    if (--pending > 0) return;
+                    data.emails = window.BRIEFING_EMAILS || [];
+                    data.prs = window.BRIEFING_PRS || { mine: [], review: [] };
+                    data.issues = window.BRIEFING_ISSUES || [];
+                    data.generatedAt = (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || data.generatedAt;
+                    renderAll();
+                    Object.keys(scrolls).forEach(function(id) {
+                        var b = document.getElementById(id);
+                        if (b) b.scrollTop = scrolls[id];
+                    });
+                    window.scrollTo(0, pageY);
+                    lastUpdateMs = Date.now();
+                    setRefreshStatus();
+                });
+            });
+        }
+
+        function checkForUpdate() {
+            injectScript('data-meta.js', function(ok) {
+                if (ok) {
+                    var gen = window.BRIEFING_META && window.BRIEFING_META.generatedAt;
+                    if (gen && gen !== lastGeneratedAt) {
+                        lastGeneratedAt = gen;
+                        reloadData();
+                        return;
+                    }
+                }
+                setRefreshStatus();
+            });
+        }
+
+        setInterval(checkForUpdate, CHECK_INTERVAL_MS);
+        setRefreshStatus();
 
         // --- Keyboard nav ---
         var headers = document.querySelectorAll('.section-header');

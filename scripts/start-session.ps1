@@ -20,16 +20,26 @@ try {
     $claudePath = (Get-Command claude).Source
     Add-Content -Path $logFile -Value "[$timestamp] Found Claude CLI at: $claudePath"
 
-    $prompt = "Run the morning briefing. Spin up 3 agents in parallel to collect data as described in CLAUDE.md, then generate the dashboard."
+    $prompt = "Run the morning briefing. Spin up 3 agents in parallel to collect data as described in CLAUDE.md, then write the dashboard data files."
 
-    Add-Content -Path $logFile -Value "[$timestamp] Launching Claude Code in project directory: $repoRoot"
+    # Marks this as a dashboard-populating run so the gh-account-guard hook lets the briefing's
+    # gh data calls use the Paradigm work account. Outside this flag, every gh action in the repo
+    # stays on the personal account. Inherited by the claude process and its sub-agents.
+    $env:DAILY_DASHBOARD_BRIEFING = '1'
+
+    # Headless (-p): non-interactive run with no TUI, required for windowless polling.
+    # stdout carries the run summary, captured to the log since there's no console to watch.
+    Add-Content -Path $logFile -Value "[$timestamp] Launching headless Claude (claude -p) in project directory: $repoRoot"
     Push-Location $repoRoot
-    & $claudePath --dangerously-skip-permissions --model sonnet $prompt
+    $output = & $claudePath -p $prompt --dangerously-skip-permissions --model sonnet 2>&1
     Pop-Location
     if ($LASTEXITCODE -ne 0) {
         Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Claude exited with code $LASTEXITCODE"
+        Add-Content -Path $logFile -Value $output
         exit $LASTEXITCODE
     }
+    Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Briefing output:"
+    Add-Content -Path $logFile -Value $output
     Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Session ended."
 }
 catch {
