@@ -34,12 +34,13 @@ The agent's working directory is already `D:\SideProjects\Daily-Dashboard`, so t
 
 ### IMPORTANT: Escape string values so the file is valid JavaScript
 
-Every value you place inside the `"..."` strings (email subjects, PR/issue titles, sender names, previews) comes from external data and may contain characters that break the file. In **each** string value you MUST escape:
+Every value you place inside the `"..."` strings (email subjects, PR/issue titles, sender names, previews) comes from external data and may contain characters that break the file. **Emit each value as a valid JSON string** — i.e. escape exactly what `JSON.stringify` would:
 
-- `"` → `\"` (a double quote — e.g. a title like `Capture – "Authorization required"`)
-- `\` → `\\` (a backslash)
+- `"` → `\"` (double quote — e.g. a title like `Capture – "Authorization required"`)
+- `\` → `\\` (backslash)
+- newline → `\n`, carriage return → `\r`, tab → `\t` (common in email `bodyPreview`)
 
-A single unescaped `"` makes the whole `data-*.js` file invalid JavaScript, so the browser silently fails to load that section's global and the dashboard shows it as empty — with no visible error. When in doubt, escape. Apply this to every writer below.
+Any one of these left raw makes the whole `data-*.js` file invalid JavaScript, so the browser silently fails to load that section's global and the dashboard shows it as empty — with no visible error. A literal line break in a preview breaks the file just as surely as a stray quote. When in doubt, escape. Apply this to every writer below.
 
 ### Agent 1: Unread Emails
 
