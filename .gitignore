@@ -1,8 +1,5 @@
 logs/
 WorkingFiles/
 dashboard/data.js
-dashboard/data-meta.js
-dashboard/data-emails.js
-dashboard/data-prs.js
-dashboard/data-issues.js
+dashboard/data/*.js
 dashboard/briefing.html
