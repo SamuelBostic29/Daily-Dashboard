@@ -2,6 +2,16 @@
 
 This project is a personal dashboard that refreshes throughout the day (and via Windows Task Scheduler on weekday mornings) to surface your unread email, PR queue, and assigned issues. When launched, Claude should execute the briefing workflow below.
 
+## GitHub account (always work)
+
+The briefing queries Paradigm **work** data (`involves:SBosticParadigm` PRs, `assignee:SBosticParadigm` issues), so its **`gh` data calls use the `SBosticParadigm` account** — never the personal `SamuelBostic29` account, even though this repo is personal-owned.
+
+This is pinned in `config/gh-account.json` (`{ "ghAccount": "SBosticParadigm" }`) and enforced by the global `gh-account-guard.ps1` hook, which reads that file and overrides its default owner-based account selection for `gh` commands. To switch on the fly, edit that value to another authed gh account.
+
+Note: this pin covers only `gh` data calls. **`git push`/`pull` of this repo still use the personal `SamuelBostic29` account** (it's a personal-owned repo), per the global account rules.
+
+Before running the agents, confirm the active account: run `gh auth status`; if it isn't `SBosticParadigm`, run `gh auth switch --user SBosticParadigm` first.
+
 ## Morning Briefing Workflow
 
 When prompted to "Run the morning briefing", spin up **3 agents in parallel** — one for each data source below. **Each agent writes its own data file directly** to `dashboard/`. The agents do NOT return JSON to the orchestrator. The orchestrator writes only the tiny `data-meta.js` and opens `dashboard/template.html`.
