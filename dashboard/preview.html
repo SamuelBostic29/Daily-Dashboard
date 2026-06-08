@@ -231,6 +231,7 @@
         </div>
     </div>
 
+    <script src="renderers.js"></script>
     <script src="test-data.js"></script>
     <script>
         // --- Greeting ---
@@ -250,44 +251,28 @@
 
         document.getElementById('timestamp').textContent = data.generatedAt;
 
-        function renderItem(item) {
-            return '<a class="item" href="' + item.url + '" target="_blank" data-item-id="' + item.id + '">'
-                + '<div class="item-row">'
-                + '<span class="item-primary">' + item.title + '</span>'
-                + '<button class="dismiss-btn" onclick="dismissItem(\'' + item.id + '\', event)">&times;</button>'
-                + '</div>'
-                + '<div class="item-meta">' + item.meta + (item.labels && item.labels.length ? ' · ' + item.labels.map(function(l) { return '<span class="label-tag">' + l + '</span>'; }).join(' ') : '') + '</div>'
-                + '</a>';
-        }
-
-        function renderSection(id, items) {
-            var body = document.getElementById(id + '-body');
-            if (!items || items.length === 0) {
-                body.innerHTML = '<div class="empty-state">No items</div>';
-            } else {
-                body.innerHTML = items.map(renderItem).join('');
-            }
+        function renderSection(id, items, renderFn) {
+            document.getElementById(id + '-body').innerHTML =
+                DashboardRenderers.renderList(items, renderFn);
         }
 
         function renderPRs() {
-            var body = document.getElementById('prs-body');
             var mine = data.prs.mine || [];
             var review = data.prs.review || [];
             if (mine.length === 0 && review.length === 0) {
-                body.innerHTML = '<div class="empty-state">No items</div>';
+                document.getElementById('prs-body').innerHTML = '<div class="empty-state">No items</div>';
                 return;
             }
-            var html = '';
-            html += '<div class="sub-group-label">My PRs</div>';
-            html += mine.length ? mine.map(renderItem).join('') : '<div class="empty-state">None</div>';
-            html += '<div class="sub-group-label">Needs My Review</div>';
-            html += review.length ? review.map(renderItem).join('') : '<div class="empty-state">None</div>';
-            body.innerHTML = html;
+            document.getElementById('prs-body').innerHTML =
+                '<div class="sub-group-label">My PRs</div>'
+                + DashboardRenderers.renderList(mine, DashboardRenderers.renderPRItem, 'None')
+                + '<div class="sub-group-label">Needs My Review</div>'
+                + DashboardRenderers.renderList(review, DashboardRenderers.renderPRItem, 'None');
         }
 
-        renderSection('emails', data.emails);
+        renderSection('emails', data.emails, DashboardRenderers.renderEmailItem);
         renderPRs();
-        renderSection('issues', data.issues);
+        renderSection('issues', data.issues, DashboardRenderers.renderIssueItem);
 
         // --- Dismiss ---
         var storageKey = 'gmc-dismissed-' + new Date().toISOString().slice(0, 10);
