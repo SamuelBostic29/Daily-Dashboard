@@ -6,11 +6,13 @@ This project is a personal dashboard that refreshes throughout the day (and via 
 
 The briefing queries Paradigm **work** data (`involves:SBosticParadigm` PRs, `assignee:SBosticParadigm` issues), so its **`gh` data calls use the `SBosticParadigm` account** — never the personal `SamuelBostic29` account, even though this repo is personal-owned.
 
-This is pinned in `config/gh-account.json` (`{ "ghAccount": "SBosticParadigm" }`) and enforced by the global `gh-account-guard.ps1` hook, which reads that file and overrides its default owner-based account selection for `gh` commands. To switch on the fly, edit that value to another authed gh account.
+The work account is used **only by the dashboard-populating briefing run**; everything else in this personal repo uses the personal `SamuelBostic29` account.
 
-Note: this pin covers only `gh` data calls. **`git push`/`pull` of this repo still use the personal `SamuelBostic29` account** (it's a personal-owned repo), per the global account rules.
+`scripts/start-session.ps1` sets `DAILY_DASHBOARD_BRIEFING=1` before launching `claude`. The global `gh-account-guard.ps1` hook sees that flag (inherited by the briefing's `claude` process and its agents) and, combined with `config/gh-account.json` (`{ "ghAccount": "SBosticParadigm" }`), pins the briefing's `gh` data calls to `SBosticParadigm`. To use a different account for briefings, edit that config value.
 
-Before running the agents, confirm the active account: run `gh auth status`; if it isn't `SBosticParadigm`, run `gh auth switch --user SBosticParadigm` first.
+Outside a briefing run — interactive work, `git push`/`pull`, `gh issue`/`pr` create, even reads — the guard requires the **personal** `SamuelBostic29` account (the repo owner). So: the briefing fetches work data as `SBosticParadigm`; you do everything else as `SamuelBostic29`.
+
+The briefing itself (launched via `start-session.ps1`) must be on the work account: run `gh auth status`; if it isn't `SBosticParadigm`, run `gh auth switch --user SBosticParadigm` first.
 
 ## Morning Briefing Workflow
 
@@ -29,6 +31,15 @@ rm -f dashboard/<your-target-file>
 **Run that command literally.** Do NOT convert the path to an absolute Windows path (`D:\...`). Do NOT add backslashes. Do NOT wrap it in PowerShell (`Test-Path`, `Remove-Item`, `Set-Content`, `New-Item`). Unquoted backslashes in Bash are escape sequences — `D:\SideProjects\...` collapses to a garbage path, `rm -f` silently no-ops, the file stays on disk, and the next Write call fails the harness's "must Read first" guard rail.
 
 The agent's working directory is already `D:\SideProjects\Daily-Dashboard`, so the relative path `dashboard/<file>` works as-is. (`rm -f` is silent when the file doesn't exist, so it's safe on the first run.) Only after this deletion do you call Write with the new contents. Do NOT use Read + Edit on a stale file — always delete and write fresh.
+
+### IMPORTANT: Escape string values so the file is valid JavaScript
+
+Every value you place inside the `"..."` strings (email subjects, PR/issue titles, sender names, previews) comes from external data and may contain characters that break the file. In **each** string value you MUST escape:
+
+- `"` → `\"` (a double quote — e.g. a title like `Capture – "Authorization required"`)
+- `\` → `\\` (a backslash)
+
+A single unescaped `"` makes the whole `data-*.js` file invalid JavaScript, so the browser silently fails to load that section's global and the dashboard shows it as empty — with no visible error. When in doubt, escape. Apply this to every writer below.
 
 ### Agent 1: Unread Emails
 
@@ -122,21 +133,25 @@ window.BRIEFING_ISSUES = [
 
 Return only a brief confirmation. Do NOT return the JSON payload to the orchestrator.
 
-### After All Agents Complete: Write Meta File and Open Dashboard
+### After All Agents Complete: Write Meta File
 
 **Step 1.** Delete the target file: `rm -f dashboard/data-meta.js`
 
-**Step 2.** Write `dashboard/data-meta.js` with this exact format:
+**Step 2.** Get the current time by running this Bash command and use its **exact** stdout as `generatedAt`. Do NOT type the time from memory — the system clock is the only reliable source:
+
+```bash
+date '+%-m/%-d/%Y %-I:%M %p'
+```
+
+Read `intervalMinutes` from `config/schedule.json` (default `30` if absent), then write `dashboard/data-meta.js` in this exact shape — replace `MM/DD/YYYY h:mm AM/PM` with the real `date` output above and `30` with the configured interval:
 
 ```js
-window.BRIEFING_META = { generatedAt: "MM/DD/YYYY h:mm AM/PM" };
+window.BRIEFING_META = { generatedAt: "MM/DD/YYYY h:mm AM/PM", intervalMinutes: 30 };
 ```
 
-Then open the dashboard:
+`data-meta.js` is written **last** (after the three data files) — the dashboard polls it for a changed `generatedAt` and uses that as the signal that fresh data files are ready. `intervalMinutes` drives the dashboard's stale indicator.
 
-```powershell
-Start-Process "dashboard/template.html"
-```
+**Do NOT open the dashboard.** The repeating polls run windowless (headless `claude -p`), so launching a browser from them would be disruptive. Open the dashboard once each morning (`scripts/open-dashboard.ps1`); it auto-reloads in place when `generatedAt` changes.
 
 Do NOT modify `template.html`. Do NOT generate HTML. Do NOT write a combined `data.js`. The template loads `data-meta.js`, `data-emails.js`, `data-prs.js`, and `data-issues.js` separately and stitches them into `window.BRIEFING_DATA` on load.
 
