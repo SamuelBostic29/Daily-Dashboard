@@ -104,7 +104,7 @@ cd Daily-Dashboard
 .\scripts\open-dashboard.ps1
 ```
 
-To preview the layout without any live data, just open `dashboard/preview/preview.html` (or load `dashboard/test-data.js` into the template).
+To preview the layout without any live data, just open `dashboard/preview/preview.html` — it renders the bundled sample data in `dashboard/test-data.js`.
 
 ### Configuration
 

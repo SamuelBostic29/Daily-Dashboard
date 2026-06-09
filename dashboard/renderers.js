@@ -1,5 +1,6 @@
-// Shared rendering for the Daily Dashboard — used by template.html, preview.html, and the
-// upcoming TODO view (#40-#44), so an item change lands on every surface at once.
+// Shared rendering for the Daily Dashboard — used by template/template.html,
+// preview/preview.html, and the upcoming TODO view (#40-#44), so an item change lands on
+// every surface at once.
 //
 // Escaping is solved once, here: the html`` tagged template escapes every interpolated value,
 // so item data (email subjects, PR/issue titles, labels, urls) can never inject markup. There

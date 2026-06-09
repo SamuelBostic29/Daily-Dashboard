@@ -1,6 +1,7 @@
-// Shared dashboard runtime behavior for template.html and preview.html: the time-of-day
-// greeting, per-day dismiss state, badge counts, and keyboard section navigation. Dismiss uses
-// one delegated click listener, so item cards carry no inline handler and an id never enters JS.
+// Shared dashboard runtime behavior for template/template.html and preview/preview.html: the
+// time-of-day greeting, per-day dismiss state, badge counts, and keyboard section navigation.
+// Dismiss uses one delegated click listener, so item cards carry no inline handler and an id
+// never enters JS.
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -45,7 +46,7 @@
         var id = item.getAttribute('data-item-id');
         if (dismissed.indexOf(id) === -1) {
             dismissed.push(id);
-            localStorage.setItem(storageKey, JSON.stringify(dismissed));
+            try { localStorage.setItem(storageKey, JSON.stringify(dismissed)); } catch (e) { /* still dismiss in-page */ }
         }
         item.classList.add('dismissed');
         updateBadges();
@@ -83,11 +84,18 @@
         // dismissals never land in the live dashboard's set.
         var keyBase = 'gmc-dismissed-' + ((opts && opts.scope) || 'live') + '-';
         storageKey = keyBase + new Date().toISOString().slice(0, 10);
-        // Load today's dismissals for this scope; drop this scope's leftovers from previous days.
-        Object.keys(localStorage).forEach(function (key) {
-            if (key.indexOf(keyBase) === 0 && key !== storageKey) localStorage.removeItem(key);
-        });
-        dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        // Load today's dismissals for this scope; drop this scope's leftovers from previous days
+        // and any legacy un-scoped keys ('gmc-dismissed-<date>') from before scoping existed.
+        try {
+            Object.keys(localStorage).forEach(function (key) {
+                var legacy = key.indexOf('gmc-dismissed-') === 0 && !/^gmc-dismissed-(live|preview)-/.test(key);
+                if (legacy || (key.indexOf(keyBase) === 0 && key !== storageKey)) localStorage.removeItem(key);
+            });
+            dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        } catch (e) {
+            dismissed = [];   // corrupt entry or blocked storage must not take down the page
+        }
+        if (!Array.isArray(dismissed)) dismissed = [];
         document.addEventListener('click', onClick);
         document.addEventListener('keydown', onKeydown);
     }

@@ -1,4 +1,4 @@
-// Bootstrap for the live dashboard (template.html): stitch the briefing's data globals into
+// Bootstrap for the live dashboard (template/template.html): stitch the briefing's data globals into
 // window.BRIEFING_DATA, render via the shared renderers, wire shared behavior, then poll for a
 // newer briefing and re-render in place. Loaded last, after renderers.js, behavior.js, and the
 // data/*.js files it depends on.

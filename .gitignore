@@ -1,5 +1,3 @@
 logs/
 WorkingFiles/
-dashboard/data.js
 dashboard/data/*.js
-dashboard/briefing.html
