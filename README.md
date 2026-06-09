@@ -65,11 +65,13 @@ scripts/register-task.ps1  Register / update / unregister the scheduled task
 scripts/start-session.ps1  Launches a headless Claude Code briefing session (logged)
 scripts/open-dashboard.ps1 Opens the dashboard once in the interactive session
 dashboard/template/template.html  The dashboard page (open this to view your briefing)
+dashboard/template/template.js    Live-page bootstrap: data wiring, render, auto-reload
 dashboard/preview/preview.html    Static design preview with no live data
+dashboard/preview/preview.js      Preview bootstrap: render the bundled sample data
 dashboard/css/styles.css          Shared stylesheet linked by both pages
 dashboard/css/preview.css         Preview-only style overrides (flat background + glows)
 dashboard/renderers.js            Shared rendering (html`` escaper + email/PR/issue renderers)
-dashboard/behavior.js             Shared runtime: delegated dismiss, badges, keyboard nav
+dashboard/behavior.js             Shared runtime: greeting, delegated dismiss, badges, keyboard nav
 dashboard/test-data.js            Sample data for previewing the layout
 dashboard/data/*.js               Generated live data (git-ignored; folder kept + documented via data/README.md)
 logs/                      start-session.ps1 run logs (git-ignored)

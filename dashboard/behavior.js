@@ -1,6 +1,6 @@
-// Shared dashboard runtime behavior for template.html and preview.html: per-day dismiss state,
-// badge counts, and keyboard section navigation. Dismiss uses one delegated click listener, so
-// item cards carry no inline handler and an item id never enters a JS string.
+// Shared dashboard runtime behavior for template.html and preview.html: the time-of-day
+// greeting, per-day dismiss state, badge counts, and keyboard section navigation. Dismiss uses
+// one delegated click listener, so item cards carry no inline handler and an id never enters JS.
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -65,7 +65,20 @@
         }
     }
 
+    function setGreeting() {
+        var hour = new Date().getHours();
+        var mornings = ["Good Morning, Sam", "Rise and Shine, Sam", "Let's Get It, Sam", "Top of the Morning, Sam", "Ready to Roll, Sam", "New Day, New Wins, Sam", "Coffee's Ready, Sam"];
+        var afternoons = ["Good Afternoon, Sam", "Still at It, Sam", "Afternoon Check-in, Sam", "How's the Day Going, Sam"];
+        var evenings = ["Good Evening, Sam", "Burning the Midnight Oil, Sam", "Late Night Grind, Sam", "Wrapping Up, Sam"];
+        var greetings = hour < 12 ? mornings : hour < 17 ? afternoons : evenings;
+        var pick = greetings[Math.floor(Math.random() * greetings.length)];
+        var el = document.getElementById('greeting');
+        if (el) el.textContent = pick;
+        document.title = pick;
+    }
+
     function init(opts) {
+        setGreeting();
         // Scope the per-day key per page (default 'live'); preview passes its own scope so its
         // dismissals never land in the live dashboard's set.
         var keyBase = 'gmc-dismissed-' + ((opts && opts.scope) || 'live') + '-';

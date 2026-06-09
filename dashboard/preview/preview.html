@@ -56,30 +56,6 @@
     <script src="../renderers.js"></script>
     <script src="../behavior.js"></script>
     <script src="../test-data.js"></script>
-    <script>
-        // --- Greeting ---
-        (function() {
-            var hour = new Date().getHours();
-            var mornings = ["Good Morning, Sam", "Rise and Shine, Sam", "Let's Get It, Sam", "Top of the Morning, Sam", "Ready to Roll, Sam", "New Day, New Wins, Sam", "Coffee's Ready, Sam"];
-            var afternoons = ["Good Afternoon, Sam", "Still at It, Sam", "Afternoon Check-in, Sam", "How's the Day Going, Sam"];
-            var evenings = ["Good Evening, Sam", "Burning the Midnight Oil, Sam", "Late Night Grind, Sam", "Wrapping Up, Sam"];
-            var greetings = hour < 12 ? mornings : hour < 17 ? afternoons : evenings;
-            var pick = greetings[Math.floor(Math.random() * greetings.length)];
-            document.getElementById('greeting').textContent = pick;
-            document.title = pick;
-        })();
-
-        // --- Render ---
-        var data = window.BRIEFING_DATA || { generatedAt: '', emails: [], prs: { mine: [], review: [] }, issues: [] };
-
-        document.getElementById('timestamp').textContent = data.generatedAt;
-
-        DashboardRenderers.renderSection('emails', data.emails, DashboardRenderers.renderEmailItem);
-        DashboardRenderers.renderPRs(data.prs);
-        DashboardRenderers.renderSection('issues', data.issues, DashboardRenderers.renderIssueItem);
-
-        DashboardBehavior.init({ scope: 'preview' });
-        DashboardBehavior.applyDismissed();
-    </script>
+    <script src="preview.js"></script>
 </body>
 </html>
