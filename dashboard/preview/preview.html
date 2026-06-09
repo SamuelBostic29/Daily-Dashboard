@@ -17,38 +17,54 @@
             <div class="timestamp" id="timestamp"></div>
         </header>
 
-        <div class="sections">
-            <section class="section" id="emails">
-                <div class="section-header" tabindex="0" role="button" aria-expanded="true">
-                    <div class="section-title-group">
-                        <span class="section-icon">&#9993;</span>
-                        <span class="section-title">Emails</span>
-                    </div>
-                    <span class="badge" id="emails-badge">0</span>
-                </div>
-                <div class="section-body" id="emails-body"></div>
-            </section>
+        <nav class="view-tabs" role="tablist" aria-label="Views">
+            <button class="view-tab active" id="tab-dashboard" type="button" role="tab"
+                    aria-selected="true" aria-controls="view-dashboard">Dashboard</button>
+            <button class="view-tab" id="tab-todo" type="button" role="tab"
+                    aria-selected="false" aria-controls="view-todo" tabindex="-1">TODO</button>
+        </nav>
 
-            <section class="section" id="prs">
-                <div class="section-header" tabindex="0" role="button" aria-expanded="true">
-                    <div class="section-title-group">
-                        <span class="section-icon">&#9734;</span>
-                        <span class="section-title">Pull Requests</span>
+        <div id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+            <div class="sections">
+                <section class="section" id="emails">
+                    <div class="section-header" tabindex="0" role="button" aria-expanded="true">
+                        <div class="section-title-group">
+                            <span class="section-icon">&#9993;</span>
+                            <span class="section-title">Emails</span>
+                        </div>
+                        <span class="badge" id="emails-badge">0</span>
                     </div>
-                    <span class="badge" id="prs-badge">0</span>
-                </div>
-                <div class="section-body" id="prs-body"></div>
-            </section>
+                    <div class="section-body" id="emails-body"></div>
+                </section>
 
-            <section class="section" id="issues">
-                <div class="section-header" tabindex="0" role="button" aria-expanded="true">
-                    <div class="section-title-group">
-                        <span class="section-icon">&#9888;</span>
-                        <span class="section-title">Assigned Issues</span>
+                <section class="section" id="prs">
+                    <div class="section-header" tabindex="0" role="button" aria-expanded="true">
+                        <div class="section-title-group">
+                            <span class="section-icon">&#9734;</span>
+                            <span class="section-title">Pull Requests</span>
+                        </div>
+                        <span class="badge" id="prs-badge">0</span>
                     </div>
-                    <span class="badge" id="issues-badge">0</span>
-                </div>
-                <div class="section-body" id="issues-body"></div>
+                    <div class="section-body" id="prs-body"></div>
+                </section>
+
+                <section class="section" id="issues">
+                    <div class="section-header" tabindex="0" role="button" aria-expanded="true">
+                        <div class="section-title-group">
+                            <span class="section-icon">&#9888;</span>
+                            <span class="section-title">Assigned Issues</span>
+                        </div>
+                        <span class="badge" id="issues-badge">0</span>
+                    </div>
+                    <div class="section-body" id="issues-body"></div>
+                </section>
+            </div>
+        </div>
+
+        <div id="view-todo" role="tabpanel" aria-labelledby="tab-todo" hidden>
+            <!-- TODO view (#42) renders here; until then, an empty placeholder. -->
+            <section class="section todo-placeholder">
+                <div class="empty-state">Nothing on the list yet</div>
             </section>
         </div>
     </div>

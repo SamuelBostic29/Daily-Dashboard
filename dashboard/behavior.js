@@ -1,7 +1,7 @@
 // Shared dashboard runtime behavior for template/template.html and preview/preview.html: the
-// time-of-day greeting, per-day dismiss state, badge counts, section collapse, and keyboard
-// section navigation. Dismiss uses one delegated click listener, so item cards carry no inline
-// handler and an id never enters JS.
+// time-of-day greeting, per-day dismiss state, badge counts, section collapse, keyboard
+// section navigation, and the Dashboard/TODO view tabs. Dismiss uses one delegated click
+// listener, so item cards carry no inline handler and an id never enters JS.
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -65,9 +65,12 @@
     }
 
     function onKeydown(e) {
-        var headers = document.querySelectorAll('.section-header');
+        // Only headers in the visible view participate — offsetParent is null inside a hidden panel.
+        var headers = Array.prototype.filter.call(document.querySelectorAll('.section-header'), function (h) {
+            return h.offsetParent !== null;
+        });
         if (!headers.length) return;
-        var cur = Array.prototype.indexOf.call(headers, document.activeElement);
+        var cur = headers.indexOf(document.activeElement);
         if ((e.key === 'Enter' || e.key === ' ') && cur >= 0 && !e.ctrlKey && !e.altKey && !e.metaKey) {
             e.preventDefault();
             toggleSection(headers[cur]);
@@ -81,6 +84,41 @@
             e.preventDefault();
             headers[(cur - 1 + headers.length) % headers.length].focus();
         }
+    }
+
+    // ARIA tablist for the Dashboard/TODO views: activating a tab shows its panel (via
+    // aria-controls) and hides the rest. Selection is per-load — the Dashboard is always
+    // the default view, so nothing persists.
+    function activateTab(tab) {
+        var tablist = tab.closest('.view-tabs');
+        tablist.querySelectorAll('.view-tab').forEach(function (t) {
+            var active = t === tab;
+            t.classList.toggle('active', active);
+            t.setAttribute('aria-selected', String(active));
+            t.tabIndex = active ? 0 : -1;
+            var panel = document.getElementById(t.getAttribute('aria-controls'));
+            if (panel) panel.hidden = !active;
+        });
+    }
+
+    function initTabs() {
+        var tablist = document.querySelector('.view-tabs');
+        if (!tablist) return;   // a surface without tabs keeps working unchanged
+        tablist.addEventListener('click', function (e) {
+            var tab = e.target.closest('.view-tab');
+            if (tab) activateTab(tab);
+        });
+        tablist.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+            e.stopPropagation();   // arrows inside the tablist must not also drive section nav
+            var tabs = Array.prototype.slice.call(tablist.querySelectorAll('.view-tab'));
+            var cur = tabs.indexOf(e.target.closest('.view-tab'));
+            if (cur < 0) return;
+            var next = tabs[(cur + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+            activateTab(next);
+            next.focus();
+        });
     }
 
     function setGreeting() {
@@ -97,6 +135,7 @@
 
     function init(opts) {
         setGreeting();
+        initTabs();
         // Scope the per-day key per page (default 'live'); preview passes its own scope so its
         // dismissals never land in the live dashboard's set.
         var scope = (opts && opts.scope) || 'live';
