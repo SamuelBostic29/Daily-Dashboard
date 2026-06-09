@@ -44,7 +44,7 @@ try {
 }
 catch {
     $errorMessage = $_.Exception.Message
-    Add-Content -Path $logFile -Value "[$timestamp] ERROR: $errorMessage"
+    Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] ERROR: $errorMessage"
     Write-Error "Daily Dashboard startup failed: $errorMessage"
     exit 1
 }

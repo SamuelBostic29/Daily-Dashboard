@@ -108,6 +108,7 @@ header .refresh-status.stale { color: #fbbf24; }
 .badge.zero { background: rgba(255, 255, 255, 0.05); color: #4b5563; }
 
 .section-body { max-height: 500px; overflow-y: auto; }
+.section.collapsed .section-body { display: none; }
 
 .item {
     display: block;
@@ -160,10 +161,6 @@ header .refresh-status.stale { color: #fbbf24; }
     padding: 2px 8px; border-radius: 12px;
     background: rgba(249, 115, 22, 0.15); color: #fdba74; margin-right: 4px;
 }
-
-.ci-pass { color: #34d399; }
-.ci-fail { color: #fb7185; }
-.ci-pending { color: #fbbf24; }
 
 .empty-state { padding: 32px 22px; text-align: center; color: #4b5563; font-size: 13px; font-style: italic; }
 

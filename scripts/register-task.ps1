@@ -51,6 +51,10 @@ function Get-TaskComponents {
         [string[]]$endParts = $config.endTime -split ":"
         $duration = (New-TimeSpan -Hours ([int]$endParts[0]) -Minutes ([int]$endParts[1])) -
                     (New-TimeSpan -Hours $hour -Minutes $minute)
+        if ($duration -le [TimeSpan]::Zero) {
+            Write-Error "schedule.json: endTime ($($config.endTime)) must be after startTime ($startTime)."
+            exit 1
+        }
 
         $trigger.Repetition = (New-ScheduledTaskTrigger -Once -At $at `
             -RepetitionInterval (New-TimeSpan -Minutes $intervalMinutes) `

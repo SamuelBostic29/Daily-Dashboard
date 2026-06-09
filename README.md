@@ -71,7 +71,7 @@ dashboard/preview/preview.js      Preview bootstrap: render the bundled sample d
 dashboard/css/styles.css          Shared stylesheet linked by both pages
 dashboard/css/preview.css         Preview-only style overrides (flat background + glows)
 dashboard/renderers.js            Shared rendering (html`` escaper + email/PR/issue renderers)
-dashboard/behavior.js             Shared runtime: greeting, delegated dismiss, badges, keyboard nav
+dashboard/behavior.js             Shared runtime: greeting, delegated dismiss, badges, section collapse, keyboard nav
 dashboard/test-data.js            Sample data for previewing the layout
 dashboard/data/*.js               Generated live data (git-ignored; folder kept + documented via data/README.md)
 logs/                      start-session.ps1 run logs (git-ignored)
@@ -112,6 +112,8 @@ The GitHub queries in `CLAUDE.md` are scoped to a specific account. To use your 
 
 - PRs: `involves:SBosticParadigm` → `involves:<your-login>`
 - Issues: `assignee:SBosticParadigm` → `assignee:<your-login>`
+
+The greeting name is the `USER_NAME` constant at the top of `dashboard/behavior.js`.
 
 ### Scheduling automatic refreshes
 
