@@ -1,7 +1,7 @@
 // Shared dashboard runtime behavior for template/template.html and preview/preview.html: the
-// time-of-day greeting, per-day dismiss state, badge counts, keyboard section navigation, and
-// the Dashboard/TODO view tabs. Dismiss uses one delegated click listener, so item cards carry
-// no inline handler and an id never enters JS.
+// time-of-day greeting, per-day dismiss state, badge counts, section collapse, keyboard
+// section navigation, and the Dashboard/TODO view tabs. Dismiss uses one delegated click
+// listener, so item cards carry no inline handler and an id never enters JS.
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -9,6 +9,7 @@
 
 (function () {
     var SECTION_IDS = ['emails', 'prs', 'issues'];
+    var USER_NAME = 'Sam';   // greeting name — change this to make the dashboard yours
     var storageKey;   // set by init(); scoped per page so preview can't mutate the live set
     var dismissed = [];
 
@@ -36,20 +37,31 @@
         updateBadges();
     }
 
+    function toggleSection(header) {
+        var section = header.closest('.section');
+        if (!section) return;
+        var collapsed = section.classList.toggle('collapsed');
+        header.setAttribute('aria-expanded', String(!collapsed));
+    }
+
     function onClick(e) {
         var btn = e.target.closest && e.target.closest('.dismiss-btn');
-        if (!btn) return;
-        e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
-        e.stopPropagation();
-        var item = btn.closest('[data-item-id]');
-        if (!item) return;
-        var id = item.getAttribute('data-item-id');
-        if (dismissed.indexOf(id) === -1) {
-            dismissed.push(id);
-            try { localStorage.setItem(storageKey, JSON.stringify(dismissed)); } catch (e) { /* still dismiss in-page */ }
+        if (btn) {
+            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.stopPropagation();
+            var item = btn.closest('[data-item-id]');
+            if (!item) return;
+            var id = item.getAttribute('data-item-id');
+            if (dismissed.indexOf(id) === -1) {
+                dismissed.push(id);
+                try { localStorage.setItem(storageKey, JSON.stringify(dismissed)); } catch (err) { /* still dismiss in-page */ }
+            }
+            item.classList.add('dismissed');
+            updateBadges();
+            return;
         }
-        item.classList.add('dismissed');
-        updateBadges();
+        var header = e.target.closest && e.target.closest('.section-header');
+        if (header) toggleSection(header);
     }
 
     function onKeydown(e) {
@@ -59,6 +71,11 @@
         });
         if (!headers.length) return;
         var cur = headers.indexOf(document.activeElement);
+        if ((e.key === 'Enter' || e.key === ' ') && cur >= 0 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            e.preventDefault();
+            toggleSection(headers[cur]);
+            return;
+        }
         if (cur < 0) cur = 0;
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
             e.preventDefault();
@@ -106,11 +123,11 @@
 
     function setGreeting() {
         var hour = new Date().getHours();
-        var mornings = ["Good Morning, Sam", "Rise and Shine, Sam", "Let's Get It, Sam", "Top of the Morning, Sam", "Ready to Roll, Sam", "New Day, New Wins, Sam", "Coffee's Ready, Sam"];
-        var afternoons = ["Good Afternoon, Sam", "Still at It, Sam", "Afternoon Check-in, Sam", "How's the Day Going, Sam"];
-        var evenings = ["Good Evening, Sam", "Burning the Midnight Oil, Sam", "Late Night Grind, Sam", "Wrapping Up, Sam"];
+        var mornings = ["Good Morning", "Rise and Shine", "Let's Get It", "Top of the Morning", "Ready to Roll", "New Day, New Wins", "Coffee's Ready"];
+        var afternoons = ["Good Afternoon", "Still at It", "Afternoon Check-in", "How's the Day Going"];
+        var evenings = ["Good Evening", "Burning the Midnight Oil", "Late Night Grind", "Wrapping Up"];
         var greetings = hour < 12 ? mornings : hour < 17 ? afternoons : evenings;
-        var pick = greetings[Math.floor(Math.random() * greetings.length)];
+        var pick = greetings[Math.floor(Math.random() * greetings.length)] + ", " + USER_NAME;
         var el = document.getElementById('greeting');
         if (el) el.textContent = pick;
         document.title = pick;
@@ -121,16 +138,25 @@
         initTabs();
         // Scope the per-day key per page (default 'live'); preview passes its own scope so its
         // dismissals never land in the live dashboard's set.
-        var keyBase = 'gmc-dismissed-' + ((opts && opts.scope) || 'live') + '-';
-        storageKey = keyBase + new Date().toISOString().slice(0, 10);
+        var scope = (opts && opts.scope) || 'live';
+        var today = new Date().toISOString().slice(0, 10);
+        var keyBase = 'dashboard-dismissed-' + scope + '-';
+        storageKey = keyBase + today;
         // Load today's dismissals for this scope; drop this scope's leftovers from previous days
-        // and any legacy un-scoped keys ('gmc-dismissed-<date>') from before scoping existed.
+        // and everything under the legacy 'gmc-dismissed-' prefix from before the rename —
+        // migrating today's legacy entries first so a mid-day upgrade doesn't resurrect them.
         try {
+            var legacyToday = JSON.parse(localStorage.getItem('gmc-dismissed-' + scope + '-' + today) || '[]');
             Object.keys(localStorage).forEach(function (key) {
-                var legacy = /^gmc-dismissed-\d{4}-\d{2}-\d{2}$/.test(key);   // pre-scoping format only — never another scope's keys
+                var legacy = key.indexOf('gmc-dismissed-') === 0;
                 if (legacy || (key.indexOf(keyBase) === 0 && key !== storageKey)) localStorage.removeItem(key);
             });
-            dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            var stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            dismissed = Array.isArray(stored) ? stored : [];
+            if (Array.isArray(legacyToday) && legacyToday.length) {
+                legacyToday.forEach(function (id) { if (dismissed.indexOf(id) === -1) dismissed.push(id); });
+                localStorage.setItem(storageKey, JSON.stringify(dismissed));
+            }
         } catch (e) {
             dismissed = [];   // corrupt entry or blocked storage must not take down the page
         }
