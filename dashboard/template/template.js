@@ -77,6 +77,7 @@ function reloadData() {
             data.prs = window.BRIEFING_PRS || { mine: [], review: [] };
             data.issues = window.BRIEFING_ISSUES || [];
             data.generatedAt = (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || data.generatedAt;
+            lastGeneratedAt = data.generatedAt;   // advance only on success, so a failed reload retries next poll
             renderAll();
             Object.keys(scrolls).forEach(function(id) {
                 var b = document.getElementById(id);
@@ -94,8 +95,7 @@ function checkForUpdate() {
         if (ok) {
             var gen = window.BRIEFING_META && window.BRIEFING_META.generatedAt;
             if (gen && gen !== lastGeneratedAt) {
-                lastGeneratedAt = gen;
-                reloadData();
+                reloadData();   // lastGeneratedAt advances inside reloadData's completion
                 return;
             }
         }

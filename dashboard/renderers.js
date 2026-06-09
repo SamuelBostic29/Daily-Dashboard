@@ -14,14 +14,19 @@
         });
     }
 
-    // Tagged template: every ${value} is HTML-escaped. To splice in already-built html`` markup
-    // without re-escaping it, pass it inside an array — array values are joined raw.
+    // Wraps already-built html`` markup so the html`` tag splices it without re-escaping.
+    // This is the ONLY way to bypass escaping — it must never be applied to external data.
+    function raw(markup) {
+        return { __rawHtml: String(markup == null ? '' : markup) };
+    }
+
+    // Tagged template: every ${value} is HTML-escaped unless explicitly wrapped in raw().
     function html(strings) {
         var values = Array.prototype.slice.call(arguments, 1);
         return strings.reduce(function (out, str, i) {
             if (i >= values.length) return out + str;
             var v = values[i];
-            return out + str + (Array.isArray(v) ? v.join('') : escapeHtml(v));
+            return out + str + (v && v.__rawHtml !== undefined ? v.__rawHtml : escapeHtml(v));
         }, '');
     }
 
@@ -50,9 +55,9 @@
             : '';
 
         return html`<a class="item" href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" data-item-id="${item.id}">`
-            + html`<div class="item-row"><span class="item-primary">${item.title}</span>${[action]}</div>`
+            + html`<div class="item-row"><span class="item-primary">${item.title}</span>${raw(action)}</div>`
             + preview
-            + html`<div class="item-meta">${item.meta}${[labels]}</div>`
+            + html`<div class="item-meta">${item.meta}${raw(labels)}</div>`
             + html`</a>`;
     }
 
@@ -81,7 +86,7 @@
         var mine = (prs && prs.mine) || [];
         var review = (prs && prs.review) || [];
         if (!mine.length && !review.length) {
-            body.innerHTML = html`<div class="empty-state">No items</div>`;
+            body.innerHTML = renderList([], null, 'No items');
             return;
         }
         body.innerHTML =
@@ -93,6 +98,7 @@
 
     window.DashboardRenderers = {
         html: html,
+        raw: raw,
         escapeHtml: escapeHtml,
         renderItemBase: renderItemBase,
         renderEmailItem: renderEmailItem,

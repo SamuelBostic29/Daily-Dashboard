@@ -88,7 +88,7 @@
         // and any legacy un-scoped keys ('gmc-dismissed-<date>') from before scoping existed.
         try {
             Object.keys(localStorage).forEach(function (key) {
-                var legacy = key.indexOf('gmc-dismissed-') === 0 && !/^gmc-dismissed-(live|preview)-/.test(key);
+                var legacy = /^gmc-dismissed-\d{4}-\d{2}-\d{2}$/.test(key);   // pre-scoping format only — never another scope's keys
                 if (legacy || (key.indexOf(keyBase) === 0 && key !== storageKey)) localStorage.removeItem(key);
             });
             dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
