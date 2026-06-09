@@ -1,8 +1,8 @@
 window.BRIEFING_DATA = {
     generatedAt: "01/01/2026 7:32 AM",
     emails: [
-        { id: "email-1", title: "Lorem ipsum dolor sit amet consectetur adipiscing elit", meta: "alice@example.com — 01/01/2026 8:15 AM", url: "#" },
-        { id: "email-2", title: "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua", meta: "bob@example.com — 01/01/2026 7:45 AM", url: "#" },
+        { id: "email-1", title: "Lorem ipsum dolor sit amet consectetur adipiscing elit", meta: "alice@example.com — 01/01/2026 8:15 AM", url: "#", preview: "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo." },
+        { id: "email-2", title: "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua", meta: "bob@example.com — 01/01/2026 7:45 AM", url: "#", preview: "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores." },
         { id: "email-3", title: "Ut enim ad minim veniam quis nostrud exercitation ullamco", meta: "carol@example.com — 01/01/2026 6:30 AM", url: "#" },
         { id: "email-4", title: "Duis aute irure dolor in reprehenderit in voluptate velit", meta: "dave@example.com — 01/01/2026 5:12 AM", url: "#" },
         { id: "email-5", title: "Excepteur sint occaecat cupidatat non proident sunt in culpa", meta: "eve@example.com — 12/31/2025 11:00 PM", url: "#" },

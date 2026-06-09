@@ -12,19 +12,19 @@ Before launching a briefing via `start-session.ps1`, confirm the work account is
 
 ## Morning Briefing Workflow
 
-When prompted to "Run the morning briefing", spin up three agents in parallel, one per data source (emails, PRs, issues). Each agent writes its own data file directly to `dashboard/` and returns only a one-line confirmation — never the data payload. Once all three finish, the orchestrator writes the small `data-meta.js` and stops.
+When prompted to "Run the morning briefing", spin up three agents in parallel, one per data source (emails, PRs, issues). Each agent writes its own data file directly to `dashboard/data/` and returns only a one-line confirmation — never the data payload. Once all three finish, the orchestrator writes the small `data/meta.js` and stops.
 
 ### Writer pattern (every agent and the orchestrator)
 
 Each writer below follows the same three rules:
 
-1. **Delete before writing.** The writer's first tool call is the Bash command `rm -f dashboard/<target-file>`, before any Write. Writing over an existing file trips the harness's "must Read first" guard and forces a slow Read→Edit fallback; deleting first avoids it, and `rm -f` is silent when the file is absent, so it's safe on the first run.
-2. **Use relative paths in Bash.** The working directory is the repo root, so `dashboard/<file>` resolves correctly — use it as-is, and never rewrite it to an absolute Windows path. Unquoted backslashes are Bash escape sequences that silently corrupt the path, so the `rm` no-ops and the later Write fails. Bash handles these file operations; PowerShell is only for launching sessions and opening the dashboard.
-3. **Emit strings as valid JSON.** Every value placed inside `"..."` (subjects, titles, sender names, previews) is external data that may contain `"`, `\`, or line breaks. Escape each exactly as `JSON.stringify` would — `"`→`\"`, `\`→`\\`, newline→`\n`, return→`\r`, tab→`\t`. A single raw character makes the whole `data-*.js` file invalid, and the browser then loads that section as empty with no error.
+1. **Delete before writing.** The writer's first tool call is the Bash command `rm -f dashboard/data/<target-file>`, before any Write. Writing over an existing file trips the harness's "must Read first" guard and forces a slow Read→Edit fallback; deleting first avoids it, and `rm -f` is silent when the file is absent, so it's safe on the first run.
+2. **Use relative paths in Bash.** The working directory is the repo root, so `dashboard/data/<file>` resolves correctly — use it as-is, and never rewrite it to an absolute Windows path. Unquoted backslashes are Bash escape sequences that silently corrupt the path, so the `rm` no-ops and the later Write fails. Bash handles these file operations; PowerShell is only for launching sessions and opening the dashboard.
+3. **Emit strings as valid JSON.** Every value placed inside `"..."` (subjects, titles, sender names, previews) is external data that may contain `"`, `\`, or line breaks. Escape each exactly as `JSON.stringify` would — `"`→`\"`, `\`→`\\`, newline→`\n`, return→`\r`, tab→`\t`. A single raw character makes the whole `data/*.js` file invalid, and the browser then loads that section as empty with no error.
 
 After deleting, write only the file format shown for that data source.
 
-### Agent 1: Unread Emails → `data-emails.js`
+### Agent 1: Unread Emails → `data/emails.js`
 
 Fetch the 25 most recent unread emails with `mcp__claude_ai_Microsoft_365__outlook_email_search`, passing exactly:
 
@@ -46,7 +46,7 @@ window.BRIEFING_EMAILS = [
 ];
 ```
 
-### Agent 2: GitHub PR Queue → `data-prs.js`
+### Agent 2: GitHub PR Queue → `data/prs.js`
 
 Fetch open PRs with `gh api` (not `gh search prs`, which returns empty under OAuth tokens):
 
@@ -71,7 +71,7 @@ window.BRIEFING_PRS = {
 };
 ```
 
-### Agent 3: GitHub Assigned Issues → `data-issues.js`
+### Agent 3: GitHub Assigned Issues → `data/issues.js`
 
 Fetch open assigned issues with `gh api` (not `gh search issues`, which returns empty under OAuth tokens), sorted by last update:
 
@@ -92,7 +92,7 @@ window.BRIEFING_ISSUES = [
 ];
 ```
 
-### Orchestrator: Meta File → `data-meta.js`
+### Orchestrator: Meta File → `data/meta.js`
 
 After all three agents finish, write the meta file last. Get the timestamp from the system clock (the only reliable source — don't type it from memory):
 
@@ -106,11 +106,11 @@ Read `intervalMinutes` from `config/schedule.json` (default `30` if absent), the
 window.BRIEFING_META = { generatedAt: "MM/DD/YYYY h:mm AM/PM", intervalMinutes: 30 };
 ```
 
-`data-meta.js` is written last because the dashboard polls it: a changed `generatedAt` is the signal that the three data files are ready, and `intervalMinutes` drives the stale indicator.
+`data/meta.js` is written last because the dashboard polls it: a changed `generatedAt` is the signal that the three data files are ready, and `intervalMinutes` drives the stale indicator.
 
 Don't open the dashboard from the briefing — the repeating polls run windowless (headless `claude -p`), so launching a browser would be disruptive. Open it once each morning with `scripts/open-dashboard.ps1`; it auto-reloads in place when `generatedAt` changes.
 
-Don't modify `template.html`, generate HTML, or write a combined `data.js`. The template loads `data-meta.js`, `data-emails.js`, `data-prs.js`, and `data-issues.js` separately and stitches them into `window.BRIEFING_DATA` on load.
+Don't modify `dashboard/template/template.html`, generate HTML, or write a combined `data.js`. The data files live in `dashboard/data/` (write them there); the template lives in `dashboard/template/` and loads `../data/meta.js`, `../data/emails.js`, `../data/prs.js`, and `../data/issues.js` separately, stitching them into `window.BRIEFING_DATA` on load.
 
 ## Reference Files
 

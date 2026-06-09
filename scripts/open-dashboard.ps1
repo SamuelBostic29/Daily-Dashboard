@@ -6,7 +6,7 @@
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$dashboard = Join-Path $repoRoot "dashboard\template.html"
+$dashboard = Join-Path $repoRoot "dashboard\template\template.html"
 
 if (-not (Test-Path $dashboard)) {
     Write-Error "Dashboard not found at: $dashboard"

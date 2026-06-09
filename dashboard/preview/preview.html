@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Good Morning, Sam</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/preview.css">
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-2"></div>
+
+    <div class="container">
+        <header>
+            <h1 id="greeting"></h1>
+            <div class="timestamp" id="timestamp"></div>
+        </header>
+
+        <div class="sections">
+            <section class="section" id="emails">
+                <div class="section-header" tabindex="0">
+                    <div class="section-title-group">
+                        <span class="section-icon">&#9993;</span>
+                        <span class="section-title">Emails</span>
+                    </div>
+                    <span class="badge" id="emails-badge">0</span>
+                </div>
+                <div class="section-body" id="emails-body"></div>
+            </section>
+
+            <section class="section" id="prs">
+                <div class="section-header" tabindex="0">
+                    <div class="section-title-group">
+                        <span class="section-icon">&#9734;</span>
+                        <span class="section-title">Pull Requests</span>
+                    </div>
+                    <span class="badge" id="prs-badge">0</span>
+                </div>
+                <div class="section-body" id="prs-body"></div>
+            </section>
+
+            <section class="section" id="issues">
+                <div class="section-header" tabindex="0">
+                    <div class="section-title-group">
+                        <span class="section-icon">&#9888;</span>
+                        <span class="section-title">Assigned Issues</span>
+                    </div>
+                    <span class="badge" id="issues-badge">0</span>
+                </div>
+                <div class="section-body" id="issues-body"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="../renderers.js"></script>
+    <script src="../behavior.js"></script>
+    <script src="../test-data.js"></script>
+    <script src="preview.js"></script>
+</body>
+</html>
