@@ -71,7 +71,7 @@ dashboard/css/preview.css         Preview-only style overrides (flat background 
 dashboard/renderers.js            Shared rendering (html`` escaper + email/PR/issue renderers)
 dashboard/behavior.js             Shared runtime: delegated dismiss, badges, keyboard nav
 dashboard/test-data.js            Sample data for previewing the layout
-dashboard/data/*.js               Generated live data (git-ignored, folder kept via .gitkeep)
+dashboard/data/*.js               Generated live data (git-ignored; folder kept + documented via data/README.md)
 logs/                      start-session.ps1 run logs (git-ignored)
 WorkingFiles/              Free-form notes / General Logs.txt (git-ignored)
 ```
