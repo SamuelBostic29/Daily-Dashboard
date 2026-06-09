@@ -39,7 +39,9 @@
 
     function toggleSection(header) {
         var section = header.closest('.section');
-        if (section) section.classList.toggle('collapsed');
+        if (!section) return;
+        var collapsed = section.classList.toggle('collapsed');
+        header.setAttribute('aria-expanded', String(!collapsed));
     }
 
     function onClick(e) {
@@ -66,7 +68,7 @@
         var headers = document.querySelectorAll('.section-header');
         if (!headers.length) return;
         var cur = Array.prototype.indexOf.call(headers, document.activeElement);
-        if ((e.key === 'Enter' || e.key === ' ') && cur >= 0) {
+        if ((e.key === 'Enter' || e.key === ' ') && cur >= 0 && !e.ctrlKey && !e.altKey && !e.metaKey) {
             e.preventDefault();
             toggleSection(headers[cur]);
             return;
@@ -97,16 +99,25 @@
         setGreeting();
         // Scope the per-day key per page (default 'live'); preview passes its own scope so its
         // dismissals never land in the live dashboard's set.
-        var keyBase = 'dashboard-dismissed-' + ((opts && opts.scope) || 'live') + '-';
-        storageKey = keyBase + new Date().toISOString().slice(0, 10);
+        var scope = (opts && opts.scope) || 'live';
+        var today = new Date().toISOString().slice(0, 10);
+        var keyBase = 'dashboard-dismissed-' + scope + '-';
+        storageKey = keyBase + today;
         // Load today's dismissals for this scope; drop this scope's leftovers from previous days
-        // and everything under the legacy 'gmc-dismissed-' prefix from before the rename.
+        // and everything under the legacy 'gmc-dismissed-' prefix from before the rename —
+        // migrating today's legacy entries first so a mid-day upgrade doesn't resurrect them.
         try {
+            var legacyToday = JSON.parse(localStorage.getItem('gmc-dismissed-' + scope + '-' + today) || '[]');
             Object.keys(localStorage).forEach(function (key) {
                 var legacy = key.indexOf('gmc-dismissed-') === 0;
                 if (legacy || (key.indexOf(keyBase) === 0 && key !== storageKey)) localStorage.removeItem(key);
             });
-            dismissed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            var stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            dismissed = Array.isArray(stored) ? stored : [];
+            if (Array.isArray(legacyToday) && legacyToday.length) {
+                legacyToday.forEach(function (id) { if (dismissed.indexOf(id) === -1) dismissed.push(id); });
+                localStorage.setItem(storageKey, JSON.stringify(dismissed));
+            }
         } catch (e) {
             dismissed = [];   // corrupt entry or blocked storage must not take down the page
         }

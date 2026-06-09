@@ -48,6 +48,10 @@ function Get-TaskComponents {
     # so borrow a repetition block from a throwaway -Once trigger. No interval => single daily run.
     [int]$intervalMinutes = if ($config.intervalMinutes) { [int]$config.intervalMinutes } else { 0 }
     if ($intervalMinutes -gt 0) {
+        if (-not $config.endTime) {
+            Write-Error "schedule.json: endTime is required when intervalMinutes is set."
+            exit 1
+        }
         [string[]]$endParts = $config.endTime -split ":"
         $duration = (New-TimeSpan -Hours ([int]$endParts[0]) -Minutes ([int]$endParts[1])) -
                     (New-TimeSpan -Hours $hour -Minutes $minute)
