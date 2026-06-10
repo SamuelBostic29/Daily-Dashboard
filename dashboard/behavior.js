@@ -90,6 +90,11 @@
     }
 
     function onKeydown(e) {
+        if (e.key === 'Escape' && modalOpen()) {
+            setModalOpen(false);
+            return;
+        }
+        if (modalOpen()) return;   // typing in the dialog must not drive section/selection keys
         if (e.key === 'Escape' && selecting()) {
             finishSelection(false);
             return;
@@ -202,6 +207,48 @@
         document.getElementById('selection-cancel-btn').addEventListener('click', function () { finishSelection(false); });
     }
 
+    // Custom item modal (#43): the TODO view's "+ New Item" opens a dialog with Label /
+    // Description / Link. Submit normalizes the fields onto the shared item shape (label →
+    // title, description → meta, link → url) and stores a 'custom' entry; Cancel or Escape
+    // closes without adding. Focus moves into the dialog on open and back to the opener on
+    // close. Label is required via native form validation; safeUrl() already neutralizes a
+    // non-http(s) link at render time, so the field can stay free-text.
+    function modalOpen() {
+        var modal = document.getElementById('custom-item-modal');
+        return !!modal && !modal.hidden;
+    }
+
+    function setModalOpen(on) {
+        var modal = document.getElementById('custom-item-modal');
+        modal.hidden = !on;
+        if (on) {
+            document.getElementById('custom-label').focus();
+        } else {
+            modal.querySelector('form').reset();
+            document.getElementById('add-custom-btn').focus();
+        }
+    }
+
+    function initCustomModal() {
+        var openBtn = document.getElementById('add-custom-btn');
+        if (!openBtn) return;   // a surface without the TODO view keeps working unchanged
+        openBtn.addEventListener('click', function () { setModalOpen(true); });
+        document.getElementById('custom-cancel-btn').addEventListener('click', function () { setModalOpen(false); });
+        document.querySelector('#custom-item-modal form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            TodoStore.add([{
+                // Random suffix keeps two quick adds from colliding on the same millisecond.
+                id: 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+                type: 'custom',
+                title: document.getElementById('custom-label').value.trim(),
+                meta: document.getElementById('custom-description').value.trim(),
+                url: document.getElementById('custom-link').value.trim()
+            }]);
+            refreshTodo();
+            setModalOpen(false);
+        });
+    }
+
     // Transient confirmation toast: one reused element, shown for a few seconds per message.
     var toastTimer;
     function showToast(message) {
@@ -235,6 +282,7 @@
         setGreeting();
         initTabs();
         initSelection();
+        initCustomModal();
         // Scope the per-day key per page (default 'live'); preview passes its own scope so its
         // dismissals never land in the live dashboard's set. The TODO store shares the same
         // scope, so its list is isolated per page the same way.
