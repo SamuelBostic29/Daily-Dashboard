@@ -67,9 +67,15 @@
         </div>
 
         <div id="view-todo" role="tabpanel" aria-labelledby="tab-todo" hidden>
-            <!-- TODO view (#42) renders here; until then, an empty placeholder. -->
-            <section class="section todo-placeholder">
-                <div class="empty-state">Nothing on the list yet</div>
+            <section class="section" id="todo">
+                <div class="section-header" tabindex="0" role="button" aria-expanded="true">
+                    <div class="section-title-group">
+                        <span class="section-icon">&#10003;</span>
+                        <span class="section-title">TODO</span>
+                    </div>
+                    <span class="badge" id="todo-badge">0</span>
+                </div>
+                <div class="section-body" id="todo-body"></div>
             </section>
         </div>
     </div>

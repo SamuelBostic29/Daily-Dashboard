@@ -1,6 +1,5 @@
 // Shared rendering for the Daily Dashboard — used by template/template.html,
-// preview/preview.html, and the upcoming TODO view (#40-#44), so an item change lands on
-// every surface at once.
+// preview/preview.html, and the TODO view, so an item change lands on every surface at once.
 //
 // Escaping is solved once, here: the html`` tagged template escapes every interpolated value,
 // so item data (email subjects, PR/issue titles, labels, urls) can never inject markup. There
@@ -106,6 +105,38 @@
             + renderList(review, renderPRItem, 'None');
     }
 
+    // The TODO view's sub-headers, in display order; only groups with items render.
+    var TODO_GROUPS = [
+        { type: 'email', label: 'Emails' },
+        { type: 'pr', label: 'Pull Requests' },
+        { type: 'issue', label: 'Issues' },
+        { type: 'custom', label: 'Custom' }
+    ];
+
+    // Compact card for the TODO view: no preview, and the action removes the item from the
+    // TODO list (permanently, via the store) rather than dismissing it for the day.
+    function renderTodoItem(item) {
+        return renderItemBase(item, {
+            showPreview: false,
+            action: html`<button class="todo-remove-btn" type="button" aria-label="Remove from TODO">&times;</button>`
+        });
+    }
+
+    // Render the TODO view's single compact list into #todo-body, grouped under sub-headers.
+    function renderTodo(items) {
+        var body = document.getElementById('todo-body');
+        if (!body) return;
+        if (!items || !items.length) {
+            body.innerHTML = renderList([], null, 'Nothing on the list yet — add items from the Dashboard');
+            return;
+        }
+        body.innerHTML = TODO_GROUPS.map(function (group) {
+            var grouped = items.filter(function (item) { return item.type === group.type; });
+            if (!grouped.length) return '';
+            return html`<div class="sub-group-label">${group.label}</div>` + grouped.map(renderTodoItem).join('');
+        }).join('');
+    }
+
     window.DashboardRenderers = {
         html: html,
         raw: raw,
@@ -115,8 +146,10 @@
         renderEmailItem: renderEmailItem,
         renderPRItem: renderPRItem,
         renderIssueItem: renderIssueItem,
+        renderTodoItem: renderTodoItem,
         renderList: renderList,
         renderSection: renderSection,
-        renderPRs: renderPRs
+        renderPRs: renderPRs,
+        renderTodo: renderTodo
     };
 })();

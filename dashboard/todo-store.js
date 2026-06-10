@@ -50,6 +50,12 @@
         return added;
     }
 
+    function remove(id) {
+        var before = items.length;
+        items = items.filter(function (t) { return t.id !== id; });
+        if (items.length !== before) persist();
+    }
+
     function all() { return items.slice(); }
 
     function init(opts) {
@@ -66,5 +72,5 @@
         }
     }
 
-    window.TodoStore = { init: init, add: add, all: all };
+    window.TodoStore = { init: init, add: add, remove: remove, all: all };
 })();
