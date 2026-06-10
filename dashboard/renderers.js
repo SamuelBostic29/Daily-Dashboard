@@ -36,10 +36,20 @@
         return /^https?:\/\//i.test(u) ? u : '#';
     }
 
+    // Items indexed by id as they render, so behavior code (e.g. the Add-to-TODO selection
+    // mode) can resolve a card in the DOM back to its data without re-deriving it from page
+    // globals. Re-renders simply re-register; lookups only ever use ids present in the DOM.
+    var renderedItems = {};
+
+    function getItem(id) {
+        return renderedItems[id];
+    }
+
     // Generic item card. The three per-type wrappers below are the seam where one type can
     // diverge later (e.g. #25's one-click PR review → renderPRItem) without touching the others.
     function renderItemBase(item, opts) {
         opts = opts || {};
+        renderedItems[item.id] = item;
         var showPreview = opts.showPreview !== undefined ? opts.showPreview : !!item.preview;
         var showLabels = opts.showLabels !== undefined ? opts.showLabels : !!(item.labels && item.labels.length);
 
@@ -100,6 +110,7 @@
         html: html,
         raw: raw,
         escapeHtml: escapeHtml,
+        getItem: getItem,
         renderItemBase: renderItemBase,
         renderEmailItem: renderEmailItem,
         renderPRItem: renderPRItem,
