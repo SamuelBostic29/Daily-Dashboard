@@ -2,7 +2,8 @@
 // time-of-day greeting, per-day dismiss state, badge counts, section collapse, keyboard
 // section navigation, the Dashboard/TODO view tabs, the Add-to-TODO selection mode, and a
 // toast. Dismiss and selection use one delegated click listener, so item cards carry no
-// inline handler and an id never enters JS.
+// inline handler and an item id never enters a JS string (ids are read from data-item-id
+// at event time, never interpolated into generated source).
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed

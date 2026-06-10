@@ -23,20 +23,27 @@
         return ITEM_TYPES.indexOf(prefix) >= 0 ? prefix : (item.type || 'custom');
     }
 
+    // One normalizer for everything that enters the in-memory list — items added from the
+    // dashboard and entries re-read from storage alike — so the fields rendering depends on
+    // (notably labels as an array) always hold the expected shape.
+    function toEntry(item) {
+        return {
+            id: item.id,
+            type: typeOf(item),
+            title: item.title,
+            meta: item.meta,
+            url: item.url,
+            preview: item.preview || '',
+            labels: Array.isArray(item.labels) ? item.labels : []
+        };
+    }
+
     // Add items to the list, skipping ids already on it. Returns the number actually added.
     function add(newItems) {
         var added = 0;
         (newItems || []).forEach(function (item) {
             if (!item || !item.id || items.some(function (t) { return t.id === item.id; })) return;
-            items.push({
-                id: item.id,
-                type: typeOf(item),
-                title: item.title,
-                meta: item.meta,
-                url: item.url,
-                preview: item.preview || '',
-                labels: item.labels || []
-            });
+            items.push(toEntry(item));
             added++;
         });
         if (added) persist();
@@ -47,11 +54,15 @@
 
     function init(opts) {
         storageKey = 'dashboard-todo-' + ((opts && opts.scope) || 'live');
+        // Corrupt or blocked storage must not take down the page — and that holds per entry
+        // too: a hand-edited store degrades to its valid entries, re-normalized via toEntry().
         try {
             var stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            items = Array.isArray(stored) ? stored : [];
+            items = (Array.isArray(stored) ? stored : [])
+                .filter(function (t) { return t && t.id; })
+                .map(toEntry);
         } catch (e) {
-            items = [];   // corrupt entry or blocked storage must not take down the page
+            items = [];
         }
     }
 
