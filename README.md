@@ -20,6 +20,12 @@ When you tell Claude Code to **"Run the morning briefing"**, it spins up three a
 
 Each item is rendered in a local dashboard with click-through links to the original, per-day dismiss tracking, and a time-of-day-aware greeting — so you can triage without jumping between tabs.
 
+### The TODO view
+
+The dashboard answers *"what came in?"*; the **TODO view** (second tab on the same page) answers *"what am I actually doing today?"*. Click **Add to TODO** on the Dashboard to enter a multi-select mode and push the items that matter into one compact list, grouped under Emails / Pull Requests / Issues / Custom sub-headers. **+ New Item** adds custom entries (label, description, link) for work the dashboard doesn't surface.
+
+The list persists in `localStorage` and — unlike the per-day dismiss state — **carries across days**: a dismiss means "done looking at this today", a TODO means "I still owe this work", so entries stay until you remove them with their **&times;** button. Briefing refreshes never touch the TODO list.
+
 ## How It Works
 
 The project has no build step, server, or runtime framework. The moving parts are:
@@ -70,8 +76,9 @@ dashboard/preview/preview.html    Static design preview with no live data
 dashboard/preview/preview.js      Preview bootstrap: render the bundled sample data
 dashboard/css/styles.css          Shared stylesheet linked by both pages
 dashboard/css/preview.css         Preview-only style overrides (flat background + glows)
-dashboard/renderers.js            Shared rendering (html`` escaper + email/PR/issue renderers)
-dashboard/behavior.js             Shared runtime: greeting, delegated dismiss, badges, section collapse, keyboard nav
+dashboard/renderers.js            Shared rendering (html`` escaper + email/PR/issue/TODO renderers)
+dashboard/behavior.js             Shared runtime: greeting, delegated dismiss, badges, section collapse, keyboard nav, view tabs, Add-to-TODO selection, custom-item modal
+dashboard/todo-store.js           localStorage-backed TODO list store (scoped per page, persists across days)
 dashboard/test-data.js            Sample data for previewing the layout
 dashboard/data/*.js               Generated live data (git-ignored; folder kept + documented via data/README.md)
 logs/                      start-session.ps1 run logs (git-ignored)
