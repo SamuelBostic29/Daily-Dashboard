@@ -67,11 +67,39 @@
         </div>
 
         <div id="view-todo" role="tabpanel" aria-labelledby="tab-todo" hidden>
-            <!-- TODO view (#42) renders here; until then, an empty placeholder. -->
-            <section class="section todo-placeholder">
-                <div class="empty-state">Nothing on the list yet</div>
+            <div class="view-actions">
+                <button class="action-btn" id="add-custom-btn" type="button" aria-haspopup="dialog">+ New Item</button>
+            </div>
+            <section class="section" id="todo">
+                <div class="section-header" tabindex="0" role="button" aria-expanded="true">
+                    <div class="section-title-group">
+                        <span class="section-icon">&#10003;</span>
+                        <span class="section-title">TODO</span>
+                    </div>
+                    <span class="badge" id="todo-badge">0</span>
+                </div>
+                <div class="section-body" id="todo-body"></div>
             </section>
         </div>
+    </div>
+
+    <div class="modal-overlay" id="custom-item-modal" hidden>
+        <form class="modal" role="dialog" aria-modal="true" aria-labelledby="custom-item-heading">
+            <h2 id="custom-item-heading">New TODO Item</h2>
+            <label>Label
+                <input type="text" id="custom-label" required maxlength="200" autocomplete="off">
+            </label>
+            <label>Description
+                <input type="text" id="custom-description" maxlength="500" autocomplete="off">
+            </label>
+            <label>Link
+                <input type="text" id="custom-link" maxlength="2000" autocomplete="off" placeholder="https://&hellip;">
+            </label>
+            <div class="modal-actions">
+                <button class="action-btn" id="custom-cancel-btn" type="button">Cancel</button>
+                <button class="action-btn primary" type="submit">Add</button>
+            </div>
+        </form>
     </div>
 
     <script src="../renderers.js"></script>
