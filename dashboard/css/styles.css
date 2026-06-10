@@ -267,6 +267,9 @@ header .refresh-status.stale { color: #fbbf24; }
     z-index: 20;
 }
 
+/* display:flex above outranks the UA's [hidden] { display:none } — restate it. */
+.modal-overlay[hidden] { display: none; }
+
 .modal {
     background: rgba(22, 27, 45, 0.97);
     border: 1px solid rgba(255, 255, 255, 0.1);
