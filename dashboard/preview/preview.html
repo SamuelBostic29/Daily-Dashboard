@@ -25,6 +25,11 @@
         </nav>
 
         <div id="view-dashboard" role="tabpanel" aria-labelledby="tab-dashboard">
+            <div class="view-actions">
+                <button class="action-btn" id="add-to-todo-btn" type="button">Add to TODO</button>
+                <button class="action-btn primary" id="selection-done-btn" type="button" hidden>Done</button>
+                <button class="action-btn" id="selection-cancel-btn" type="button" hidden>Cancel</button>
+            </div>
             <div class="sections">
                 <section class="section" id="emails">
                     <div class="section-header" tabindex="0" role="button" aria-expanded="true">
@@ -70,6 +75,7 @@
     </div>
 
     <script src="../renderers.js"></script>
+    <script src="../todo-store.js"></script>
     <script src="../behavior.js"></script>
     <script src="../test-data.js"></script>
     <script src="preview.js"></script>

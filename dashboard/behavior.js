@@ -1,7 +1,9 @@
 // Shared dashboard runtime behavior for template/template.html and preview/preview.html: the
 // time-of-day greeting, per-day dismiss state, badge counts, section collapse, keyboard
-// section navigation, and the Dashboard/TODO view tabs. Dismiss uses one delegated click
-// listener, so item cards carry no inline handler and an id never enters JS.
+// section navigation, the Dashboard/TODO view tabs, the Add-to-TODO selection mode, and a
+// toast. Dismiss and selection use one delegated click listener, so item cards carry no
+// inline handler and an item id never enters a JS string (ids are read from data-item-id
+// at event time, never interpolated into generated source).
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -45,6 +47,16 @@
     }
 
     function onClick(e) {
+        // In selection mode a click anywhere on a dashboard item toggles it instead of
+        // navigating; dismiss is hidden via CSS while selecting, so no conflict with it.
+        if (selecting()) {
+            var card = e.target.closest && e.target.closest('#view-dashboard .item');
+            if (card) {
+                e.preventDefault();
+                card.classList.toggle('selected');
+                return;
+            }
+        }
         var btn = e.target.closest && e.target.closest('.dismiss-btn');
         if (btn) {
             e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
@@ -65,6 +77,10 @@
     }
 
     function onKeydown(e) {
+        if (e.key === 'Escape' && selecting()) {
+            finishSelection(false);
+            return;
+        }
         // Only headers in the visible view participate — offsetParent is null inside a hidden panel.
         var headers = Array.prototype.filter.call(document.querySelectorAll('.section-header'), function (h) {
             return h.offsetParent !== null;
@@ -121,6 +137,66 @@
         });
     }
 
+    // Add-to-TODO selection mode (#41): "Add to TODO" swaps to Done/Cancel and dashboard items
+    // become multi-selectable (handled in onClick). Done pushes the selection into TodoStore
+    // and confirms with a toast; Cancel (or Escape) discards it. Either way the dashboard
+    // returns to normal.
+    function selecting() {
+        var view = document.getElementById('view-dashboard');
+        return !!view && view.classList.contains('selecting');
+    }
+
+    function setSelecting(on) {
+        var view = document.getElementById('view-dashboard');
+        view.classList.toggle('selecting', on);
+        document.getElementById('add-to-todo-btn').hidden = on;
+        document.getElementById('selection-done-btn').hidden = !on;
+        document.getElementById('selection-cancel-btn').hidden = !on;
+        if (!on) {
+            view.querySelectorAll('.item.selected').forEach(function (el) {
+                el.classList.remove('selected');
+            });
+        }
+    }
+
+    function finishSelection(addToList) {
+        if (addToList) {
+            var items = [];
+            document.querySelectorAll('#view-dashboard .item.selected').forEach(function (el) {
+                var item = DashboardRenderers.getItem(el.getAttribute('data-item-id'));
+                if (item) items.push(item);
+            });
+            // The store skips ids already on the list, so the toast reports what truly landed.
+            if (items.length) showToast('Added (' + TodoStore.add(items) + ') items to your todo list.');
+        }
+        setSelecting(false);
+    }
+
+    function initSelection() {
+        var addBtn = document.getElementById('add-to-todo-btn');
+        if (!addBtn) return;   // a surface without the action bar keeps working unchanged
+        addBtn.addEventListener('click', function () { setSelecting(true); });
+        document.getElementById('selection-done-btn').addEventListener('click', function () { finishSelection(true); });
+        document.getElementById('selection-cancel-btn').addEventListener('click', function () { finishSelection(false); });
+    }
+
+    // Transient confirmation toast: one reused element, shown for a few seconds per message.
+    var toastTimer;
+    function showToast(message) {
+        var toast = document.getElementById('toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toast';
+            toast.className = 'toast';
+            toast.setAttribute('role', 'status');
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 3000);
+    }
+
     function setGreeting() {
         var hour = new Date().getHours();
         var mornings = ["Good Morning", "Rise and Shine", "Let's Get It", "Top of the Morning", "Ready to Roll", "New Day, New Wins", "Coffee's Ready"];
@@ -136,9 +212,12 @@
     function init(opts) {
         setGreeting();
         initTabs();
+        initSelection();
         // Scope the per-day key per page (default 'live'); preview passes its own scope so its
-        // dismissals never land in the live dashboard's set.
+        // dismissals never land in the live dashboard's set. The TODO store shares the same
+        // scope, so its list is isolated per page the same way.
         var scope = (opts && opts.scope) || 'live';
+        TodoStore.init({ scope: scope });
         var today = new Date().toISOString().slice(0, 10);
         var keyBase = 'dashboard-dismissed-' + scope + '-';
         storageKey = keyBase + today;
@@ -165,5 +244,5 @@
         document.addEventListener('keydown', onKeydown);
     }
 
-    window.DashboardBehavior = { init: init, applyDismissed: applyDismissed, updateBadges: updateBadges };
+    window.DashboardBehavior = { init: init, applyDismissed: applyDismissed, updateBadges: updateBadges, showToast: showToast };
 })();
