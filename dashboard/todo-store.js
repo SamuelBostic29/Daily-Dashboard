@@ -1,8 +1,10 @@
-// Persistent store for the TODO list (#38): items curated from the dashboard, later joined by
-// custom entries (#43). Backed by localStorage under one key per page scope ('live' /
-// 'preview'), mirroring the dismiss pattern so the preview can never mutate the real list.
-// Unlike dismiss state the key carries no date — a TODO survives reloads and days until it is
-// explicitly removed (retention finalized in #44).
+// Persistent store for the TODO list: items curated from the dashboard plus custom entries
+// from the modal. Backed by localStorage under one key per page scope ('live' / 'preview'),
+// mirroring the dismiss pattern so the preview can never mutate the real list.
+//
+// Retention: deliberately NOT date-keyed, unlike dismiss state. A dismiss says "done looking
+// at this today"; a TODO says "I still owe this work" — so entries survive reloads and days
+// until explicitly removed from the TODO view. There is no automatic expiry.
 //
 // Entries keep the shared { id, title, meta, url, preview, labels } item shape plus a `type`
 // ('email' | 'pr' | 'issue' | 'custom') that drives the TODO view's sub-headers (#42).
