@@ -1,10 +1,10 @@
 // Shared dashboard runtime behavior for template/template.html and preview/preview.html: the
 // time-of-day greeting, per-day dismiss state, badge counts, section collapse, keyboard
 // section navigation, the Dashboard/TODO view tabs, the Add-to-TODO selection mode, the TODO
-// view (hydrate from the store, remove items), and a toast. Dismiss, selection, and TODO
-// removal share one delegated click listener, so item cards carry no
-// inline handler and an item id never enters a JS string (ids are read from data-item-id
-// at event time, never interpolated into generated source).
+// view (hydrate from the store, remove items), the one-click PR review hand-off, and a toast.
+// Dismiss, selection, TODO removal, and review launch share one delegated click listener, so
+// item cards carry no inline handler and an item id never enters a JS string (ids are read
+// from data-item-id at event time, never interpolated into generated source).
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -59,6 +59,15 @@
                 card.classList.toggle('selected');
                 return;
             }
+        }
+        var reviewBtn = e.target.closest && e.target.closest('.review-btn');
+        if (reviewBtn) {
+            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.stopPropagation();
+            var reviewCard = reviewBtn.closest('[data-item-id]');
+            if (!reviewCard) return;
+            launchReview(DashboardRenderers.getItem(reviewCard.getAttribute('data-item-id')));
+            return;
         }
         var removeBtn = e.target.closest && e.target.closest('.todo-remove-btn');
         if (removeBtn) {
@@ -247,6 +256,20 @@
             refreshTodo();
             setModalOpen(false);
         });
+    }
+
+    // One-click PR review (#25): hand the PR off to the gmc-review:// protocol handler
+    // (scripts/launch-review.ps1) — the same model as a mailto: link, since a file:// page
+    // can't spawn processes. The launcher re-validates, but only real GitHub PR URLs are
+    // forwarded so preview/test items (url: "#") never fire the protocol.
+    function launchReview(item) {
+        if (!item || !/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(item.url)) {
+            showToast('No GitHub PR URL on this item.');
+            return;
+        }
+        window.location.href = 'gmc-review://review?url=' + encodeURIComponent(item.url)
+            + '&title=' + encodeURIComponent(item.title);
+        showToast('Launching review session…');
     }
 
     // Transient confirmation toast: one reused element, shown for a few seconds per message.
