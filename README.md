@@ -18,7 +18,7 @@ When you tell Claude Code to **"Run the morning briefing"**, it spins up three a
 | **GitHub Pull Requests** | Open PRs you authored *and* PRs that involve you (split into "My PRs" and "Needs My Review") |
 | **GitHub Issues** | All open issues currently assigned to you, across every accessible repo |
 
-Each item is rendered in a local dashboard with click-through links to the original, per-day dismiss tracking, and a time-of-day-aware greeting — so you can triage without jumping between tabs.
+Each item is rendered in a local dashboard with click-through links to the original, per-day dismiss tracking, and a time-of-day-aware greeting — so you can triage without jumping between tabs. PRs in the review queue additionally get a **Review** button that launches a ready-to-go Claude Code review session — see [One-click PR review](#one-click-pr-review).
 
 ### The TODO view
 
@@ -67,9 +67,14 @@ The project has no build step, server, or runtime framework. The moving parts ar
 ```
 CLAUDE.md                  The morning-briefing workflow Claude executes
 config/schedule.json       Polling schedule: start/end time, interval, days of week
+prompts/pr-review.md       Review-prompt template rendered into each one-click review session
 scripts/register-task.ps1  Register / update / unregister the scheduled task
 scripts/start-session.ps1  Launches a headless Claude Code briefing session (logged)
 scripts/open-dashboard.ps1 Opens the dashboard once in the interactive session
+scripts/install-protocol.ps1   One-time gmc-review:// URL-scheme registration (HKCU, no admin)
+scripts/uninstall-protocol.ps1 Removes the gmc-review:// registration
+scripts/launch-review.ps1  gmc-review:// handler: PR worktree + Windows Terminal claude tab
+scripts/cleanup-reviews.ps1    Ages out per-PR worktrees and briefs from the reviews cache
 dashboard/template/template.html  The dashboard page (open this to view your briefing)
 dashboard/template/template.js    Live-page bootstrap: data wiring, render, auto-reload
 dashboard/preview/preview.html    Static design preview with no live data
@@ -148,6 +153,60 @@ Register the Windows scheduled task (runs `scripts/start-session.ps1`, which lau
 The task runs **only while you're logged on** (no admin rights needed to register). Each poll launches windowless via `conhost.exe --headless powershell.exe -WindowStyle Hidden`, so no console flashes across your screen. It uses `StartWhenAvailable`, so a run missed because the machine was asleep fires when it next can. Because automated runs are unattended, `start-session.ps1` invokes Claude headless (`claude -p`) with `--dangerously-skip-permissions`.
 
 The polls only regenerate the data files — they don't open a browser. Open the dashboard once a day with `scripts/open-dashboard.ps1` (e.g. a Stream Deck shortcut, which also makes it easy to reopen if you close it); it auto-reloads in place as each poll produces fresh data.
+
+## One-click PR review
+
+Each PR under **Needs My Review** renders with a small **Review** button. Clicking it opens a new tab in your current Windows Terminal window running an **interactive** Claude Code session whose working directory is a checkout of that PR's branch at HEAD, pre-loaded with the review prompt — so at the start of the day you can fan out one tab per PR and walk through each review conversationally. The rest of the card still opens the GitHub PR page in the browser, so you can flip between the two.
+
+A `file://` page can't spawn processes, so the dashboard hands off through a custom URL scheme:
+
+```
+Review button → gmc-review:// link → Windows URL-scheme handler
+    → scripts/launch-review.ps1
+        ├─ ensure a clone / git worktree in D:\gmc-reviews\ at the PR's HEAD
+        ├─ render prompts/pr-review.md into a brief file
+        └─ open a wt tab: interactive `claude` in the worktree, pointed at the brief
+```
+
+The launcher defends against a hostile page firing the protocol on two levels. First, the `url` parameter must match `https://github.com/<owner>/<repo>/pull/<n>` exactly — anything else is rejected. But that only constrains the URL's *shape*, not its target (any GitHub PR URL fits the shape), so the launcher also enforces an **owner allowlist**: it will clone and review only PRs whose owner is listed in `config/review-owners.json`, and fails closed (refusing every review) if that file is missing or empty. Edit the list to control which orgs/accounts the protocol may ever touch.
+
+### Setup (once)
+
+```powershell
+# 1. Create your owner allowlist from the template, then edit in the orgs/accounts to allow
+Copy-Item config\review-owners.example.json config\review-owners.json
+
+# 2. Register the gmc-review:// protocol handler
+.\scripts\install-protocol.ps1
+```
+
+`config/review-owners.json` is git-ignored — it holds your personal allowlist. Until you populate it, the launcher fails closed and refuses every review (the committed `config/review-owners.example.json` is the empty template).
+
+`install-protocol.ps1` registers `gmc-review://` under `HKCU` — per-user, no admin rights. On the first click the browser asks to allow opening the link; allow it. The registration embeds the repo's absolute path, so rerun the script if the repo moves. `scripts/uninstall-protocol.ps1` removes the registration.
+
+Requires Windows Terminal and the native Claude Code install (`claude.exe` on PATH).
+
+### The reviews cache
+
+Reviews check out code into a dedicated cache at `D:\gmc-reviews\` — never your working clones, so in-progress work is untouched and any number of reviews can run in parallel. The cache lives on the data drive because clones and worktrees are full source checkouts; change the `$reviewsRoot` constant in `launch-review.ps1` and `cleanup-reviews.ps1` to relocate it.
+
+```
+D:\gmc-reviews\
+  <owner>-<repo>\           one-time base clone per repo (the only expensive step)
+  <owner>-<repo>-pr-<n>\    git worktree on the PR's branch — cheap, shares the clone's objects
+  briefs\                   rendered review prompts handed to each session
+```
+
+Re-clicking the same PR reuses its worktree after refreshing it to the PR's latest HEAD. Clone/fetch credentials are pinned to the account in `config/gh-account.json` (the same account the briefing queries run under), so launches work regardless of which `gh` account is currently active.
+
+Age out idle worktrees whenever you like — base clones are always kept:
+
+```powershell
+.\scripts\cleanup-reviews.ps1            # remove worktrees idle for 7+ days
+.\scripts\cleanup-reviews.ps1 -Days 0    # clear all worktrees
+```
+
+To change what each review session is asked to do, edit `prompts/pr-review.md` — the next launch picks it up; the launcher never needs touching.
 
 ## License
 

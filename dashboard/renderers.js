@@ -44,13 +44,14 @@
         return renderedItems[id];
     }
 
-    // Generic item card. The three per-type wrappers below are the seam where one type can
-    // diverge later (e.g. #25's one-click PR review → renderPRItem) without touching the others.
+    // Generic item card. The per-type wrappers below are the seam where one type can
+    // diverge (e.g. #25's one-click PR review → renderReviewPRItem) without touching the others.
     function renderItemBase(item, opts) {
         opts = opts || {};
         renderedItems[item.id] = item;
         var showPreview = opts.showPreview !== undefined ? opts.showPreview : !!item.preview;
         var showLabels = opts.showLabels !== undefined ? opts.showLabels : !!(item.labels && item.labels.length);
+        var lead = opts.lead !== undefined ? opts.lead : '';
 
         // NOTE: this <button> sits inside the item's <a>, which is technically an invalid content
         // model (interactive content inside a link). It works because behavior.js's delegated
@@ -64,7 +65,7 @@
             : '';
 
         return html`<a class="item" href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" data-item-id="${item.id}">`
-            + html`<div class="item-row"><span class="item-primary">${item.title}</span>${raw(action)}</div>`
+            + html`<div class="item-row">${raw(lead)}<span class="item-primary">${item.title}</span>${raw(action)}</div>`
             + preview
             + html`<div class="item-meta">${item.meta}${raw(labels)}</div>`
             + html`</a>`;
@@ -73,6 +74,16 @@
     function renderEmailItem(item) { return renderItemBase(item); }
     function renderPRItem(item) { return renderItemBase(item); }
     function renderIssueItem(item) { return renderItemBase(item); }
+
+    // One-click PR review entry point (#25): a leading Review button that launches an
+    // interactive Claude review session via the gmc-review:// protocol (click handled in
+    // behavior.js, hand-off implemented by scripts/launch-review.ps1).
+    var reviewButton = html`<button class="review-btn" type="button" aria-label="Review with Claude">Review</button>`;
+
+    // Review-queue PRs on the dashboard.
+    function renderReviewPRItem(item) {
+        return renderItemBase(item, { lead: reviewButton });
+    }
 
     // Map items through renderFn, or an empty-state when there are none. Returns a markup string.
     function renderList(items, renderFn, emptyText) {
@@ -102,7 +113,7 @@
             html`<div class="sub-group-label">My PRs</div>`
             + renderList(mine, renderPRItem, 'None')
             + html`<div class="sub-group-label">Needs My Review</div>`
-            + renderList(review, renderPRItem, 'None');
+            + renderList(review, renderReviewPRItem, 'None');
     }
 
     // The TODO view's sub-headers, in display order; only groups with items render.
@@ -114,10 +125,13 @@
     ];
 
     // Compact card for the TODO view: no preview, and the action removes the item from the
-    // TODO list (permanently, via the store) rather than dismissing it for the day.
+    // TODO list (permanently, via the store) rather than dismissing it for the day. PR items
+    // keep the Review entry point here too — the type can't distinguish the review queue from
+    // own PRs, so every PR gets the button and launchReview validates the URL on click.
     function renderTodoItem(item) {
         return renderItemBase(item, {
             showPreview: false,
+            lead: item.type === 'pr' ? reviewButton : '',
             action: html`<button class="todo-remove-btn" type="button" aria-label="Remove from TODO">&times;</button>`
         });
     }
@@ -145,6 +159,7 @@
         renderItemBase: renderItemBase,
         renderEmailItem: renderEmailItem,
         renderPRItem: renderPRItem,
+        renderReviewPRItem: renderReviewPRItem,
         renderIssueItem: renderIssueItem,
         renderTodoItem: renderTodoItem,
         renderList: renderList,
