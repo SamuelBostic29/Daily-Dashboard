@@ -1,3 +1,4 @@
 logs/
 WorkingFiles/
 dashboard/data/*.js
+config/review-owners.json
