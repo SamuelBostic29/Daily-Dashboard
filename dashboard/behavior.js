@@ -1,10 +1,12 @@
 // Shared dashboard runtime behavior for template/template.html and preview/preview.html: the
 // time-of-day greeting, per-day dismiss state, badge counts, section collapse, keyboard
 // section navigation, the Dashboard/TODO view tabs, the Add-to-TODO selection mode, the TODO
-// view (hydrate from the store, remove items), the one-click PR review hand-off, and a toast.
-// Dismiss, selection, TODO removal, and review launch share one delegated click listener, so
+// view (hydrate from the store, move items between lanes by button or drag, remove items), the
+// one-click PR review hand-off, and a toast.
+// Dismiss, selection, TODO move/removal, and review launch share one delegated click listener, so
 // item cards carry no inline handler and an item id never enters a JS string (ids are read
-// from data-item-id at event time, never interpolated into generated source).
+// from data-item-id at event time, never interpolated into generated source). Drag-to-move between
+// lanes adds delegated drag listeners alongside it, reading the same data-item-id off the card.
 //
 // Usage: call DashboardBehavior.init() once after the first render to wire the listeners and
 // load today's dismissals; call applyDismissed() after every (re)render to restore dismissed
@@ -69,6 +71,16 @@
             launchReview(DashboardRenderers.getItem(reviewCard.getAttribute('data-item-id')));
             return;
         }
+        var moveBtn = e.target.closest && e.target.closest('.todo-move-btn');
+        if (moveBtn) {
+            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.stopPropagation();
+            var moveItem = moveBtn.closest('[data-item-id]');
+            if (!moveItem) return;
+            TodoStore.setStatus(moveItem.getAttribute('data-item-id'), moveBtn.getAttribute('data-target-status'));
+            refreshTodo();
+            return;
+        }
         var removeBtn = e.target.closest && e.target.closest('.todo-remove-btn');
         if (removeBtn) {
             e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
@@ -96,6 +108,57 @@
         }
         var header = e.target.closest && e.target.closest('.section-header');
         if (header) toggleSection(header);
+    }
+
+    // Drag-to-move between lanes (#65): an alternative to the ▲/▼ buttons. TODO cards are <a>
+    // elements, draggable by default, so no attribute is needed; handlers are scoped to #view-todo
+    // so dashboard cards (which have no status) are left to their default link drag. Keyboard users
+    // use the buttons — drag is a pointer-only enhancement, never the only path. The dragged id is
+    // held in a closure var (read back on drop) rather than via dataTransfer, since dragging an
+    // anchor also writes its href there; setData is still called because Firefox needs it to start.
+    var draggingId = null;
+
+    function clearDragOver() {
+        document.querySelectorAll('.todo-lane.drag-over').forEach(function (l) { l.classList.remove('drag-over'); });
+    }
+
+    function onDragStart(e) {
+        var card = e.target.closest && e.target.closest('#view-todo .item[data-item-id]');
+        if (!card) return;
+        draggingId = card.getAttribute('data-item-id');
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', draggingId); } catch (err) { /* still drags via the closure var */ }
+        card.classList.add('dragging');
+    }
+
+    function onDragOver(e) {
+        if (!draggingId) return;
+        var lane = e.target.closest && e.target.closest('#view-todo .todo-lane');
+        if (!lane) return;
+        e.preventDefault();   // a valid drop target must cancel dragover
+        e.dataTransfer.dropEffect = 'move';
+        // Re-highlight only when crossing into a different lane, so moving over a lane's own
+        // children doesn't flicker the highlight off and on.
+        if (!lane.classList.contains('drag-over')) { clearDragOver(); lane.classList.add('drag-over'); }
+    }
+
+    function onDrop(e) {
+        if (!draggingId) return;
+        var lane = e.target.closest && e.target.closest('#view-todo .todo-lane');
+        if (!lane) return;
+        e.preventDefault();
+        TodoStore.setStatus(draggingId, lane.getAttribute('data-lane-status'));
+        draggingId = null;
+        clearDragOver();
+        refreshTodo();   // re-renders both lanes; the .dragging node is replaced wholesale
+    }
+
+    function onDragEnd() {
+        // Fires after a drop (node already replaced — a no-op) and after a drag that missed a lane.
+        draggingId = null;
+        clearDragOver();
+        var dragging = document.querySelector('#view-todo .item.dragging');
+        if (dragging) dragging.classList.remove('dragging');
     }
 
     function onKeydown(e) {
@@ -336,6 +399,10 @@
         if (!Array.isArray(dismissed)) dismissed = [];
         document.addEventListener('click', onClick);
         document.addEventListener('keydown', onKeydown);
+        document.addEventListener('dragstart', onDragStart);
+        document.addEventListener('dragover', onDragOver);
+        document.addEventListener('drop', onDrop);
+        document.addEventListener('dragend', onDragEnd);
     }
 
     window.DashboardBehavior = { init: init, applyDismissed: applyDismissed, updateBadges: updateBadges, showToast: showToast };
