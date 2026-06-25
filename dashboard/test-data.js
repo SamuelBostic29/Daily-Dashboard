@@ -21,10 +21,10 @@ window.BRIEFING_DATA = {
         ]
     },
     issues: [
-        { id: "issue-1", title: "Fusce dapibus tellus ac cursus commodo", meta: "acme/lorem-ipsum · #101 · updated today", url: "#", labels: ["feature"] },
-        { id: "issue-2", title: "Aenean lacinia bibendum nulla sed consectetur", meta: "acme/dolor-sit · #88 · 3d ago", url: "#", labels: ["enhancement"] },
-        { id: "issue-3", title: "Donec ullamcorper nulla non metus auctor fringilla", meta: "acme/amet-consectetur · #72 · 12d ago", url: "#", labels: ["bug", "priority"] },
-        { id: "issue-4", title: "Vivamus sagittis lacus vel augue laoreet", meta: "acme/adipiscing-elit · #45 · 30d ago", url: "#", labels: [] },
-        { id: "issue-5", title: "Nullam quis risus eget urna mollis ornare vel eu leo", meta: "acme/lorem-ipsum · #33 · 45d ago", url: "#", labels: ["bug"] }
+        { id: "issue-1", title: "Fusce dapibus tellus ac cursus commodo", meta: "LOREM-101 · Code review · 0d ago", url: "#", labels: ["Story", "feature"], source: "Jira" },
+        { id: "issue-2", title: "Aenean lacinia bibendum nulla sed consectetur", meta: "acme/dolor-sit · #88 · 3d ago", url: "#", labels: ["enhancement"], source: "GitHub" },
+        { id: "issue-3", title: "Donec ullamcorper nulla non metus auctor fringilla", meta: "LOREM-72 · In Progress · 12d ago", url: "#", labels: ["Bug", "priority"], source: "Jira" },
+        { id: "issue-4", title: "Vivamus sagittis lacus vel augue laoreet", meta: "acme/adipiscing-elit · #45 · 30d ago", url: "#", labels: [], source: "GitHub" },
+        { id: "issue-5", title: "Nullam quis risus eget urna mollis ornare vel eu leo", meta: "acme/lorem-ipsum · #33 · 45d ago", url: "#", labels: ["bug"], source: "GitHub" }
     ]
 };
