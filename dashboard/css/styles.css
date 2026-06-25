@@ -231,6 +231,15 @@ header .refresh-status.stale { color: #fbbf24; }
 .dismiss-btn:hover,
 .todo-remove-btn:hover { color: #fb923c; transform: scale(1.3); }
 
+/* Lane-move control on TODO cards: ▲ move up to In Progress, ▼ send down to To Do. Beside ×. */
+.todo-move-btn {
+    background: none; border: none; color: #4b5563; cursor: pointer;
+    font-size: 12px; padding: 0 0 0 8px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s, transform 0.15s;
+}
+
+.todo-move-btn:hover { color: #fdba74; transform: scale(1.3); }
+
 /* One-click PR review: small leading pill on review-queue PR cards only. */
 .review-btn {
     background: rgba(249, 115, 22, 0.15);
@@ -260,6 +269,24 @@ header .refresh-status.stale { color: #fbbf24; }
     font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: #6b7280; padding: 12px 22px 6px;
 }
+
+/* TODO view's two lanes (#65): In Progress over To Do, each a drag-drop target (the divider
+   separates them; the first lane needs none). The lane label sits one level above the type
+   sub-groups — proper-case and accented, versus the muted uppercase sub-group labels under it. */
+.todo-lane { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.todo-lane:first-child { border-top: none; }
+.todo-lane.drag-over { background: rgba(251, 146, 60, 0.08); box-shadow: inset 0 0 0 2px rgba(251, 146, 60, 0.4); }
+
+.todo-lane-label {
+    font-size: 13px; font-weight: 700; color: #fdba74;
+    padding: 14px 22px 4px;
+}
+
+.todo-lane-empty {
+    padding: 6px 22px 14px; color: #4b5563; font-size: 12px; font-style: italic;
+}
+
+.item.dragging { opacity: 0.5; }
 
 .label-tag {
     display: inline-block; font-size: 10px; font-weight: 600;

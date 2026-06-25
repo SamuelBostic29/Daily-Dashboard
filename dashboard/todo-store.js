@@ -7,7 +7,8 @@
 // until explicitly removed from the TODO view. There is no automatic expiry.
 //
 // Entries keep the shared { id, title, meta, url, preview, labels } item shape plus a `type`
-// ('email' | 'pr' | 'issue' | 'custom') that drives the TODO view's sub-headers (#42).
+// ('email' | 'pr' | 'issue' | 'custom') that drives the TODO view's sub-headers (#42), and a
+// `status` ('todo' | 'in-progress') placing the entry in one of the view's two lanes (#65).
 
 (function () {
     var ITEM_TYPES = ['email', 'pr', 'issue'];
@@ -32,6 +33,9 @@
         return {
             id: item.id,
             type: typeOf(item),
+            // Defaulted the same defensive way as labels: only the exact 'in-progress' is kept, so
+            // pre-status stored entries and hand-edited junk fall back to 'todo' — no migration.
+            status: item.status === 'in-progress' ? 'in-progress' : 'todo',
             title: item.title,
             meta: item.meta,
             url: item.url,
@@ -58,6 +62,17 @@
         if (items.length !== before) persist();
     }
 
+    // Move an entry between lanes; unknown values normalize to 'todo' (matching toEntry). all()
+    // still returns every entry — rendering filters by status — so this only flips a field.
+    function setStatus(id, status) {
+        var next = status === 'in-progress' ? 'in-progress' : 'todo';
+        var changed = false;
+        items.forEach(function (t) {
+            if (t.id === id && t.status !== next) { t.status = next; changed = true; }
+        });
+        if (changed) persist();
+    }
+
     function all() { return items.slice(); }
 
     function init(opts) {
@@ -74,5 +89,5 @@
         }
     }
 
-    window.TodoStore = { init: init, add: add, remove: remove, all: all };
+    window.TodoStore = { init: init, add: add, remove: remove, setStatus: setStatus, all: all };
 })();

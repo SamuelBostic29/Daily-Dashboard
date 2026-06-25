@@ -133,19 +133,49 @@
         { type: 'custom', label: 'Custom' }
     ];
 
-    // Compact card for the TODO view: no preview, and the action removes the item from the
-    // TODO list (permanently, via the store) rather than dismissing it for the day. PR items
-    // keep the Review entry point here too — the type can't distinguish the review queue from
-    // own PRs, so every PR gets the button and launchReview validates the URL on click.
+    // The lane-move control: a To Do card moves up to In Progress (▲); an In Progress card moves
+    // down to To Do (▼) — matching the lanes' vertical order. The target lane rides in
+    // data-target-status, read at click time in behavior.js (the id never enters a JS string).
+    function todoMoveButton(item) {
+        return item.status === 'in-progress'
+            ? html`<button class="todo-move-btn" type="button" data-target-status="todo" aria-label="Move back to To Do" title="Back to To Do">&#9660;</button>`
+            : html`<button class="todo-move-btn" type="button" data-target-status="in-progress" aria-label="Move to In Progress" title="Start">&#9650;</button>`;
+    }
+
+    // Compact card for the TODO view: no preview; trailing controls are the move (▶/◀) and the
+    // remove (×), which deletes from the store (permanently) rather than dismissing for the day. PR
+    // items keep the leading Review entry point here too — the type can't distinguish the review
+    // queue from own PRs, so every PR gets the button and launchReview validates the URL on click.
     function renderTodoItem(item) {
         return renderItemBase(item, {
             showPreview: false,
             lead: item.type === 'pr' ? reviewButton : '',
-            action: html`<button class="todo-remove-btn" type="button" aria-label="Remove from TODO">&times;</button>`
+            action: todoMoveButton(item)
+                + html`<button class="todo-remove-btn" type="button" aria-label="Remove from TODO">&times;</button>`
         });
     }
 
-    // Render the TODO view's single compact list into #todo-body, grouped under sub-headers.
+    // One lane: a drop-target wrapper (its data-lane-status is where a card dropped on it lands)
+    // holding the lane header and the items grouped under the type sub-headers — or a one-line hint
+    // when empty, so a lane (notably In Progress) stays visible, droppable, and discoverable.
+    function renderTodoLane(status, label, items, emptyHint) {
+        var inner = items.length
+            ? TODO_GROUPS.map(function (group) {
+                var grouped = items.filter(function (item) { return item.type === group.type; });
+                if (!grouped.length) return '';
+                return html`<div class="sub-group-label">${group.label}</div>` + grouped.map(renderTodoItem).join('');
+            }).join('')
+            : html`<div class="todo-lane-empty">${emptyHint}</div>`;
+        return html`<div class="todo-lane" data-lane-status="${status}">`
+            + html`<div class="todo-lane-label">${label}</div>`
+            + inner
+            + html`</div>`;
+    }
+
+    // Render the TODO view into #todo-body as two stacked lanes. In Progress is shown first — what
+    // is actively being worked is the more important lane to see. The whole-list empty state stays
+    // for a fresh list; once anything is on it both lanes always show, so a card can move (button
+    // or drag) into In Progress and back.
     function renderTodo(items) {
         var body = document.getElementById('todo-body');
         if (!body) return;
@@ -153,11 +183,11 @@
             body.innerHTML = renderList([], null, 'Nothing on the list yet — add items from the Dashboard');
             return;
         }
-        body.innerHTML = TODO_GROUPS.map(function (group) {
-            var grouped = items.filter(function (item) { return item.type === group.type; });
-            if (!grouped.length) return '';
-            return html`<div class="sub-group-label">${group.label}</div>` + grouped.map(renderTodoItem).join('');
-        }).join('');
+        var inProgress = items.filter(function (item) { return item.status === 'in-progress'; });
+        var todo = items.filter(function (item) { return item.status !== 'in-progress'; });
+        body.innerHTML =
+            renderTodoLane('in-progress', 'In Progress', inProgress, 'Nothing in progress yet — start or drag a To Do item here.')
+            + renderTodoLane('todo', 'To Do', todo, 'Nothing queued.');
     }
 
     window.DashboardRenderers = {
