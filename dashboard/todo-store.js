@@ -6,7 +6,7 @@
 // at this today"; a TODO says "I still owe this work" — so entries survive reloads and days
 // until explicitly removed from the TODO view. There is no automatic expiry.
 //
-// Entries keep the shared { id, title, meta, url, preview, labels } item shape plus a `type`
+// Entries keep the shared { id, title, meta, url, source, preview, labels } item shape plus a `type`
 // ('email' | 'pr' | 'issue' | 'custom') that drives the TODO view's sub-headers (#42), and a
 // `status` ('todo' | 'in-progress') placing the entry in one of the view's two lanes (#65).
 
@@ -39,6 +39,7 @@
             title: item.title,
             meta: item.meta,
             url: item.url,
+            source: item.source || '',
             preview: item.preview || '',
             labels: Array.isArray(item.labels) ? item.labels : []
         };

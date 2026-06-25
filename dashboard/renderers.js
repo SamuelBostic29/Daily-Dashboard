@@ -74,15 +74,28 @@
     function renderEmailItem(item) { return renderItemBase(item); }
     function renderPRItem(item) { return renderItemBase(item); }
 
-    // A small chip marking an issue's tracker (GitHub vs Jira) during the migration (#66).
-    // The modifier class drives the per-source color; absent source → no chip.
+    // A small chip marking an item's tracker (GitHub vs Jira). The modifier class drives the
+    // per-source color; absent source → no chip.
     function sourceChip(source) {
         if (!source) return '';
         var mod = source.toLowerCase() === 'jira' ? 'source-jira' : 'source-github';
         return html`<span class="source-tag ${mod}">${source}</span>`;
     }
 
-    function renderIssueItem(item) { return renderItemBase(item, { lead: sourceChip(item.source) }); }
+    // Infer a tracker from a link so custom TODO entries get a chip from their URL alone:
+    // a GitHub issue link (github.com/<owner>/<repo>/issues/<n>) → GitHub, a portal Jira
+    // browse link (…/browse/KEY-123) → Jira. PR links (…/pull/<n>) deliberately don't match.
+    function sourceFromUrl(url) {
+        var u = String(url == null ? '' : url);
+        if (/^https?:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(u)) return 'GitHub';
+        if (/^https?:\/\/portal\.myparadigm\.com\/browse\/[A-Za-z][A-Za-z0-9]*-\d+/i.test(u)) return 'Jira';
+        return '';
+    }
+
+    // An explicit source (set by the briefing fetchers) wins; otherwise derive it from the link.
+    function resolveSource(item) { return item.source || sourceFromUrl(item.url); }
+
+    function renderIssueItem(item) { return renderItemBase(item, { lead: sourceChip(resolveSource(item)) }); }
 
     // One-click PR review entry point (#25): a leading Review button that launches an
     // interactive Claude review session via the gmc-review:// protocol (click handled in
@@ -149,7 +162,7 @@
     function renderTodoItem(item) {
         return renderItemBase(item, {
             showPreview: false,
-            lead: item.type === 'pr' ? reviewButton : '',
+            lead: sourceChip(resolveSource(item)) + (item.type === 'pr' ? reviewButton : ''),
             action: todoMoveButton(item)
                 + html`<button class="todo-remove-btn" type="button" aria-label="Remove from TODO">&times;</button>`
         });
