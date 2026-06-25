@@ -1,13 +1,13 @@
-# Removes the gmc-review:// URL scheme registered by install-protocol.ps1.
+# Removes the gmc-review:// and gmc-refresh:// URL schemes registered by install-protocol.ps1.
 # The D:\gmc-reviews\ cache is left alone - clear it with cleanup-reviews.ps1 -Days 0.
 $ErrorActionPreference = 'Stop'
 
-$key = "HKCU:\Software\Classes\gmc-review"
-
-if (-not (Test-Path $key)) {
-    Write-Host "gmc-review:// is not registered - nothing to remove."
-    return
+foreach ($scheme in 'gmc-review', 'gmc-refresh') {
+    $key = "HKCU:\Software\Classes\$scheme"
+    if (-not (Test-Path $key)) {
+        Write-Host "${scheme}:// is not registered - nothing to remove."
+        continue
+    }
+    Remove-Item -Path $key -Recurse -Force
+    Write-Host "Unregistered ${scheme}://"
 }
-
-Remove-Item -Path $key -Recurse -Force
-Write-Host "Unregistered gmc-review://"
