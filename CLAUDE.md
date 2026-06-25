@@ -71,22 +71,37 @@ window.BRIEFING_PRS = {
 };
 ```
 
-### Agent 3: GitHub Assigned Issues → `data/issues.js`
+### Agent 3: Assigned Issues (GitHub + Jira) → `data/issues.js`
 
-Fetch open assigned issues with `gh api` (not `gh search issues`, which returns empty under OAuth tokens), sorted by last update:
+Issue tracking is migrating from GitHub to Jira (both coexist for now), so this agent fetches **both** sources and writes one merged list, each item tagged with its `source` so the pane can show a tracker chip. Drop the GitHub half once the migration completes.
+
+**GitHub** — open assigned issues via `gh api` (not `gh search issues`, which returns empty under OAuth tokens), sorted by last update:
 
 ```bash
 gh api search/issues --method GET -f q="is:issue is:open assignee:SBosticParadigm archived:false" -f sort=updated -f order=desc -f per_page=100 --jq '.items[] | {title: .title, repo: (.repository_url | split("/") | .[-2:] | join("/")), number: .number, url: .html_url, labels: [.labels[].name], updated_at: .updated_at}'
 ```
 
+Map each to `{ id: "issue-"+repo+"-"+number, title, meta: repo+" · #"+number+" · "+Xd ago, url, labels, source: "GitHub" }`.
+
+**Jira** — my open Data Center tickets, already in final item shape (`source: "Jira"`), via the committed script (Bash, never PowerShell; it resolves the per-user PAT and pages `/rest/api/2/search` itself):
+
+```bash
+bash scripts/fetch-jira.sh
+```
+
+It emits a JSON array of `{ id, title, meta, url, labels, source }`. If it errors (no PAT — tells you to run `/jira`), write only the GitHub items rather than failing the briefing.
+
+**Merge** both arrays into one, **most-recently-updated first** across both sources, and write:
+
 ```js
 window.BRIEFING_ISSUES = [
     {
-        "id": "issue-" + repo + "-" + number,
+        "id": issue id,
         "title": issue title,
-        "meta": repo + " · #" + number + " · " + Xd ago,
-        "url": issue URL,
-        "labels": [ label name strings ]
+        "meta": source-specific meta line ("repo · #n · Xd ago" or "KEY · status · Xd ago"),
+        "url": issue/ticket URL,
+        "labels": [ label name strings ],
+        "source": "GitHub" | "Jira"
     },
     ...
 ];

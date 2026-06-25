@@ -16,7 +16,7 @@ When you tell Claude Code to **"Run the morning briefing"**, it spins up three a
 |--------|------|
 | **Microsoft 365 Mail** | Your 25 most recent unread emails (AI code-review bot noise filtered out) |
 | **GitHub Pull Requests** | Open PRs you authored *and* PRs that involve you (split into "My PRs" and "Needs My Review") |
-| **GitHub Issues** | All open issues currently assigned to you, across every accessible repo |
+| **Assigned Issues** | Open issues/tickets assigned to you, from **GitHub and Jira** together (each tagged with its tracker) during the GitHub→Jira migration |
 
 Each item is rendered in a local dashboard with click-through links to the original, per-day dismiss tracking, and a time-of-day-aware greeting — so you can triage without jumping between tabs. PRs in the review queue additionally get a **Review** button that launches a ready-to-go Claude Code review session — see [One-click PR review](#one-click-pr-review).
 
@@ -35,7 +35,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
         │
         ├─ Agent 1 ── M365 email search (MCP) ──→ dashboard/data/emails.js
         ├─ Agent 2 ── gh api (PRs)            ──→ dashboard/data/prs.js
-        └─ Agent 3 ── gh api (issues)         ──→ dashboard/data/issues.js
+        └─ Agent 3 ── gh api + scripts/fetch-jira.sh ──→ dashboard/data/issues.js
                                                        │
    Orchestrator ── writes dashboard/data/meta.js (last) ─┘
                                                           │
@@ -49,7 +49,8 @@ The project has no build step, server, or runtime framework. The moving parts ar
 ### Data sources in detail
 
 - **Email** is fetched via the Microsoft 365 MCP tool (`outlook_email_search`) using the query `isRead:false NOT body:"claude[bot]" NOT body:"@Copilot"`, which drops `claude[bot]` and `@Copilot` automated PR-review comments while keeping human messages.
-- **PRs and issues** come from `gh api search/issues` (the GitHub CLI), not `gh search`, which returns empty under OAuth tokens. The queries are scoped to a specific GitHub login — see [Configuration](#configuration) to point them at your own account.
+- **PRs and GitHub issues** come from `gh api search/issues` (the GitHub CLI), not `gh search`, which returns empty under OAuth tokens. The queries are scoped to a specific GitHub login — see [Configuration](#configuration) to point them at your own account.
+- **Jira tickets** come from `scripts/fetch-jira.sh`, which queries the self-hosted Jira Data Center search API (`/rest/api/2/search`, JQL `assignee = currentUser() AND statusCategory != Done`) authed by your per-user PAT in `~/.claude/jira-token.local` (the same git-ignored token the `jira` skill uses). The Issues pane shows GitHub and Jira items together with a tracker chip while issue tracking migrates from GitHub to Jira; the GitHub half is dropped once the migration completes.
 
 ## Tech Stack
 
@@ -68,6 +69,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
 CLAUDE.md                  The morning-briefing workflow Claude executes
 config/schedule.json       Polling schedule: start/end time, interval, days of week
 prompts/pr-review.md       Review-prompt template rendered into each one-click review session
+scripts/fetch-jira.sh      Fetches my open Jira tickets (Data Center) as dashboard items for the Issues pane
 scripts/register-task.ps1  Register / update / unregister the scheduled task
 scripts/start-session.ps1  Launches a headless Claude Code briefing session (logged)
 scripts/open-dashboard.ps1 Opens the dashboard once in the interactive session
@@ -97,6 +99,7 @@ WorkingFiles/              Free-form notes / General Logs.txt (git-ignored)
 - **Claude Code CLI** — `npm install -g @anthropic-ai/claude-code`
 - **GitHub CLI** — installed and authenticated: `gh auth login`
 - **Microsoft 365 account** connected to Claude via the Microsoft 365 MCP server (provides `outlook_email_search`)
+- **Jira Data Center PAT** in `~/.claude/jira-token.local` for the Jira half of the Issues pane — set it up once by running the `jira` skill (`/jira`). `scripts/fetch-jira.sh` runs under Bash and uses Node for its JSON transform (both already present with the Claude Code CLI).
 - **Windows** with PowerShell (for the optional scheduled task)
 
 No language runtime, package install, or build is required — the dashboard is a static file.

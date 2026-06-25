@@ -73,7 +73,16 @@
 
     function renderEmailItem(item) { return renderItemBase(item); }
     function renderPRItem(item) { return renderItemBase(item); }
-    function renderIssueItem(item) { return renderItemBase(item); }
+
+    // A small chip marking an issue's tracker (GitHub vs Jira) during the migration (#66).
+    // The modifier class drives the per-source color; absent source → no chip.
+    function sourceChip(source) {
+        if (!source) return '';
+        var mod = source.toLowerCase() === 'jira' ? 'source-jira' : 'source-github';
+        return html`<span class="source-tag ${mod}">${source}</span>`;
+    }
+
+    function renderIssueItem(item) { return renderItemBase(item, { lead: sourceChip(item.source) }); }
 
     // One-click PR review entry point (#25): a leading Review button that launches an
     // interactive Claude review session via the gmc-review:// protocol (click handled in
