@@ -1,8 +1,34 @@
+# $Trigger distinguishes the scheduler's run ("scheduled", the default so register-task.ps1 needs
+# no change) from the dashboard's manual Refresh button, which invokes this via gmc-refresh:// with
+# -Trigger manual. It's recorded in status.js so the dashboard can label the active run.
+param(
+    [ValidateSet("scheduled", "manual")]
+    [string]$Trigger = "scheduled"
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $logsDir = Join-Path $repoRoot "logs"
 $logFile = Join-Path $logsDir "startup.log"
+$statusFile = Join-Path $repoRoot "dashboard\data\status.js"
+$sessionSince = Get-Date -Format "o"
+
+# The dashboard polls status.js to show a "Refreshing…" pill and disable the Refresh button while a
+# run is in flight (#17). Written running:true as this script's first real act and flipped to false
+# in finally, so even a crash mid-briefing resets the indicator. PowerShell overwrites the file
+# directly (it isn't bound by the harness's Read-first guard), so there's no delete-then-write gap a
+# poll could fall into. Best-effort: the indicator is cosmetic, so a status-write failure must never
+# abort the briefing itself.
+function Write-Status([bool]$Running) {
+    try {
+        [string]$running = if ($Running) { 'true' } else { 'false' }
+        Set-Content -Path $statusFile -Encoding UTF8 -Value `
+            "window.BRIEFING_STATUS = { running: $running, since: `"$sessionSince`", trigger: `"$Trigger`" };"
+    } catch {
+        Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Status write ($Running) skipped: $($_.Exception.Message)"
+    }
+}
 
 if (-not (Test-Path $logsDir)) {
     New-Item -ItemType Directory -Path $logsDir | Out-Null
@@ -15,7 +41,8 @@ if ((Get-Date).DayOfWeek -eq [DayOfWeek]::Monday -and (Test-Path $logFile)) {
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 try {
-    Add-Content -Path $logFile -Value "[$timestamp] Starting Daily Dashboard session..."
+    Write-Status $true
+    Add-Content -Path $logFile -Value "[$timestamp] Starting Daily Dashboard session ($Trigger)..."
 
     $claudePath = (Get-Command claude).Source
     Add-Content -Path $logFile -Value "[$timestamp] Found Claude CLI at: $claudePath"
@@ -47,4 +74,9 @@ catch {
     Add-Content -Path $logFile -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] ERROR: $errorMessage"
     Write-Error "Daily Dashboard startup failed: $errorMessage"
     exit 1
+}
+finally {
+    # Always clear the indicator, even on the exit 1 above — a crashed run must not leave the
+    # dashboard stuck showing "Refreshing…" with the button disabled forever.
+    Write-Status $false
 }

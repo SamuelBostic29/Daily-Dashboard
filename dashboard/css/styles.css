@@ -51,6 +51,85 @@ header .refresh-status {
 
 header .refresh-status.stale { color: #fbbf24; }
 
+/* Manual refresh control + in-flight indicator (#17), pinned to the container's upper-left
+   (absolute against the position:relative .container) and stacked vertically: button above pill. */
+header .refresh-controls {
+    position: absolute;
+    top: 32px;
+    left: 40px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+header .refresh-btn {
+    background: rgba(22, 27, 45, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 9px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 6px 16px;
+    transition: color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+header .refresh-btn:hover { color: #e2e8f0; border-color: rgba(251, 146, 60, 0.4); }
+
+header .refresh-btn:focus-visible {
+    outline: 2px solid #fb923c;
+    outline-offset: -2px;
+}
+
+header .refresh-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    color: #6b7280;
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Always-on status pill: calm green "Up to date" by default, amber pulsing "Refreshing…" while a
+   run is in flight (the .running modifier, toggled by template.js from status.js). */
+header .refresh-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 4px 12px;
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+header .refresh-pill .refresh-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #34d399;
+}
+
+header .refresh-pill.running {
+    color: #fdba74;
+    background: rgba(251, 146, 60, 0.15);
+    border-color: rgba(251, 146, 60, 0.3);
+}
+
+header .refresh-pill.running .refresh-dot {
+    background: #fb923c;
+    animation: refresh-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes refresh-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.7); }
+}
+
 .view-tabs {
     display: flex;
     gap: 4px;

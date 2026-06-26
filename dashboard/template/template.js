@@ -14,6 +14,7 @@
     var lastGeneratedAt = data.generatedAt;
     var lastUpdateMs = Date.now();
     var CHECK_INTERVAL_MS = 60000; // how often we poll data/meta.js for a new generatedAt
+    var STATUS_INTERVAL_MS = 15000; // how often we poll data/status.js for a running briefing (#17)
 
     function renderAll() {
         document.getElementById('timestamp').textContent =
@@ -45,21 +46,27 @@
     }
 
     function injectScript(src, cb) {
+        // cb must fire exactly once, no matter how the load resolves: a missing file over file://
+        // can fire NEITHER onload nor onerror (this stranded the #17 status poll, leaving the
+        // "Refreshing…" pill stuck on), so a timeout guarantees a verdict either way.
+        var done = false;
+        function finish(ok) { if (done) return; done = true; cb(ok); }
         // Try a cache-busted URL first (works over http and on most file:// setups). Some
         // browsers reject the query on file:// (treat it as a missing filename) — fall back
         // to the bare path, which re-reads from disk since file:// isn't HTTP-cached.
         var s = document.createElement('script');
         s.src = src + '?v=' + Date.now();
-        s.onload = function() { s.remove(); cb(true); };
+        s.onload = function() { s.remove(); finish(true); };
         s.onerror = function() {
             s.remove();
             var bare = document.createElement('script');
             bare.src = src;
-            bare.onload = function() { bare.remove(); cb(true); };
-            bare.onerror = function() { bare.remove(); cb(false); };
+            bare.onload = function() { bare.remove(); finish(true); };
+            bare.onerror = function() { bare.remove(); finish(false); };
             document.head.appendChild(bare);
         };
         document.head.appendChild(s);
+        setTimeout(function() { finish(false); }, 5000);   // local reads finish in ms; 5s = "it's not coming"
     }
 
     function reloadData() {
@@ -106,4 +113,42 @@
 
     setInterval(checkForUpdate, CHECK_INTERVAL_MS);
     setRefreshStatus();
+
+    // --- Manual refresh (#17) ---
+    // status.js is the single source of truth for whether a briefing (scheduled OR manual) is in
+    // flight: when running, show the header pill and disable the Refresh button. start-session.ps1
+    // writes running:true at launch and running:false in a finally block, so a crashed run still
+    // clears here on the next poll.
+    function applyStatus(running) {
+        var btn = document.getElementById('refresh-btn');
+        var pill = document.getElementById('refresh-pill');
+        if (btn) btn.disabled = running;
+        if (pill) {
+            pill.classList.toggle('running', running);
+            var label = pill.querySelector('.refresh-label');
+            if (label) label.textContent = running ? 'Refreshing…' : 'Up to date';
+        }
+    }
+
+    function checkStatus() {
+        injectScript('../data/status.js', function (ok) {
+            // A missing/failed status.js (e.g. before the first run ever, since it's git-ignored)
+            // means nothing is running — never leave the button stuck disabled.
+            applyStatus(!!(ok && window.BRIEFING_STATUS && window.BRIEFING_STATUS.running === true));
+        });
+    }
+
+    function triggerRefresh() {
+        // The pill and disabled button are driven solely by status.js (below), never optimistically:
+        // if the protocol launch fails (e.g. gmc-refresh:// not registered) no run starts, so the
+        // dashboard must NOT claim it's refreshing. The toast is the only instant feedback; the pill
+        // follows once a real run writes running:true.
+        window.location.href = 'gmc-refresh://run';
+        DashboardBehavior.showToast('Refresh started…');
+    }
+
+    var refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) refreshBtn.addEventListener('click', triggerRefresh);
+    setInterval(checkStatus, STATUS_INTERVAL_MS);
+    checkStatus();
 })();
