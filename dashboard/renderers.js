@@ -132,10 +132,10 @@
             return;
         }
         body.innerHTML =
-            html`<div class="sub-group-label">My PRs</div>`
-            + renderList(mine, renderPRItem, 'None')
-            + html`<div class="sub-group-label">Needs My Review</div>`
-            + renderList(review, renderReviewPRItem, 'None');
+            html`<div class="sub-group-label">Needs My Review</div>`
+            + renderList(review, renderReviewPRItem, 'None')
+            + html`<div class="sub-group-label">My PRs</div>`
+            + renderList(mine, renderPRItem, 'None');
     }
 
     // The TODO view's sub-headers, in display order; only groups with items render.
