@@ -143,11 +143,13 @@
     }
 
     // Map items through renderFn, or an empty-state when there are none. Returns a markup string.
+    // renderFn is invoked with the item alone — never as a bare .map callback, whose index argument
+    // would land in the renderers' optional `nested` param and indent every row after the first.
     function renderList(items, renderFn, emptyText) {
         if (!items || !items.length) {
             return html`<div class="empty-state">${emptyText || 'No items'}</div>`;
         }
-        return items.map(renderFn).join('');
+        return items.map(function (item) { return renderFn(item); }).join('');
     }
 
     // Render a flat section (emails / issues) into its #<id>-body container.
@@ -216,7 +218,7 @@
                 // so a parent and child split across lanes (#72) render flat in their own lanes.
                 var rows = group.type === 'issue'
                     ? renderNestedIssues(grouped, renderTodoItem)
-                    : grouped.map(renderTodoItem).join('');
+                    : renderList(grouped, renderTodoItem);
                 return html`<div class="sub-group-label">${group.label}</div>` + rows;
             }).join('')
             : html`<div class="todo-lane-empty">${emptyHint}</div>`;
