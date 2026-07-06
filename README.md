@@ -48,7 +48,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
 
 ### Data sources in detail
 
-- **Email** is fetched via the Microsoft 365 MCP tool (`outlook_email_search`) using the query `isRead:false NOT body:"claude[bot]" NOT body:"@Copilot"`, which drops `claude[bot]` and `@Copilot` automated PR-review comments while keeping human messages.
+- **Email** is fetched via the Microsoft 365 MCP tool (`outlook_email_search`) with a query built from `config/email-filters.json`: `isRead:false` plus a `NOT body:"…"` clause per `bodyExclusions` entry (drops automated PR-review comments like `claude[bot]` and `@Copilot`) and a `NOT from:"…"` clause per `senderExclusions` entry (drops noisy senders like Datadog). Edit the JSON to change filtering.
 - **PRs and GitHub issues** come from `gh api search/issues` (the GitHub CLI), not `gh search`, which returns empty under OAuth tokens. The queries are scoped to a specific GitHub login — see [Configuration](#configuration) to point them at your own account.
 - **Jira tickets** come from `scripts/fetch-jira.sh`, which queries the self-hosted Jira Data Center search API (`/rest/api/2/search`, JQL `assignee = currentUser() AND statusCategory != Done`) authed by your per-user PAT in `~/.claude/jira-token.local` (the same git-ignored token the `jira` skill uses). The Issues pane shows GitHub and Jira items together with a tracker chip while issue tracking migrates from GitHub to Jira; the GitHub half is dropped once the migration completes.
 
@@ -68,6 +68,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
 ```
 CLAUDE.md                  The morning-briefing workflow Claude executes
 config/schedule.json       Polling schedule: start/end time, interval, days of week
+config/email-filters.json  Email search exclusions: body phrases and senders to filter out
 prompts/pr-review.md       Review-prompt template rendered into each one-click review session
 scripts/fetch-jira.sh      Fetches my open Jira tickets (Data Center) as dashboard items for the Issues pane
 scripts/register-task.ps1  Register / update / unregister the scheduled task
@@ -129,6 +130,15 @@ The GitHub queries in `CLAUDE.md` are scoped to a specific account. To use your 
 - Issues: `assignee:SBosticParadigm` → `assignee:<your-login>`
 
 The greeting name is the `USER_NAME` constant at the top of `dashboard/behavior.js`.
+
+`config/email-filters.json` controls what the email search excludes — each `bodyExclusions` entry becomes a `NOT body:"…"` clause and each `senderExclusions` entry a `NOT from:"…"` clause on the base `isRead:false` query:
+
+```json
+{
+  "bodyExclusions": ["claude[bot]", "@Copilot"],
+  "senderExclusions": ["dtdg.co"]
+}
+```
 
 ### Scheduling automatic refreshes
 

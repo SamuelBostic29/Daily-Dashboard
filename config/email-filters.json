@@ -1,0 +1,4 @@
+{
+  "bodyExclusions": ["claude[bot]", "@Copilot"],
+  "senderExclusions": ["dtdg.co"]
+}
