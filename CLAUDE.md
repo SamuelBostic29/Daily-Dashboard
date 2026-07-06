@@ -26,12 +26,19 @@ After deleting, write only the file format shown for that data source.
 
 ### Agent 1: Unread Emails → `data/emails.js`
 
-Fetch the 25 most recent unread emails with `mcp__claude_ai_Microsoft_365__outlook_email_search`, passing exactly:
+Read `config/email-filters.json` and build the search query from it:
 
-- `query`: `isRead:false NOT body:"claude[bot]" NOT body:"@Copilot"`
+- Base query: `isRead:false`
+- For each entry in `bodyExclusions`, append ` NOT body:"<entry>"`
+- For each entry in `senderExclusions`, append ` NOT from:"<entry>"`
+- An empty or missing array contributes no clauses; if the file is missing, use the base query alone.
+
+Then fetch the 25 most recent unread emails with `mcp__claude_ai_Microsoft_365__outlook_email_search`, passing:
+
+- `query`: the built query (e.g. `isRead:false NOT body:"claude[bot]" NOT body:"@Copilot" NOT from:"dtdg.co"` with the current config)
 - `limit`: `25`
 
-The `NOT body:` clauses drop AI code-review noise (`claude[bot]`, `@Copilot`) while keeping human review comments. One call only — do not paginate. Capture `bodyPreview` verbatim from each result; don't make extra `read_resource` calls to fetch full bodies.
+The `NOT body:` clauses drop AI code-review noise while keeping human review comments; the `NOT from:` clauses drop noisy senders (e.g. Datadog alerts). Edit the JSON — not this file — to change filtering. One call only — do not paginate. Capture `bodyPreview` verbatim from each result; don't make extra `read_resource` calls to fetch full bodies.
 
 ```js
 window.BRIEFING_EMAILS = [
