@@ -120,6 +120,7 @@
     // writes running:true at launch and running:false in a finally block, so a crashed run still
     // clears here on the next poll.
     function applyStatus(running) {
+        if (running) stopBurst();   // the run's running:true landed; the steady poll tracks its end
         var btn = document.getElementById('refresh-btn');
         var pill = document.getElementById('refresh-pill');
         if (btn) btn.disabled = running;
@@ -128,6 +129,23 @@
             var label = pill.querySelector('.refresh-label');
             if (label) label.textContent = running ? 'Refreshing…' : 'Up to date';
         }
+    }
+
+    // At the steady cadence a click can go a full STATUS_INTERVAL_MS with no visible reaction,
+    // which reads as the button doing nothing. After a click, poll fast until the run's
+    // running:true lands; give up after 30s (the launch never happened — e.g. gmc-refresh://
+    // not registered — and the pill must not claim otherwise).
+    var burstTimer = null;
+    function stopBurst() {
+        if (burstTimer) { clearInterval(burstTimer); burstTimer = null; }
+    }
+    function startBurst() {
+        stopBurst();
+        var deadline = Date.now() + 30000;
+        burstTimer = setInterval(function () {
+            if (Date.now() > deadline) { stopBurst(); return; }
+            checkStatus();
+        }, 2000);
     }
 
     function checkStatus() {
@@ -139,16 +157,25 @@
     }
 
     function triggerRefresh() {
-        // The pill and disabled button are driven solely by status.js (below), never optimistically:
+        // The pill and disabled button are driven solely by status.js, never optimistically:
         // if the protocol launch fails (e.g. gmc-refresh:// not registered) no run starts, so the
-        // dashboard must NOT claim it's refreshing. The toast is the only instant feedback; the pill
-        // follows once a real run writes running:true.
+        // dashboard must NOT claim it's refreshing. The toast is the only instant feedback; the
+        // burst poll flips the pill within a couple of seconds of the run writing running:true.
         window.location.href = 'gmc-refresh://run';
         DashboardBehavior.showToast('Refresh started…');
+        startBurst();
     }
 
     var refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) refreshBtn.addEventListener('click', triggerRefresh);
     setInterval(checkStatus, STATUS_INTERVAL_MS);
     checkStatus();
+
+    // Chrome throttles or freezes timers in hidden/occluded tabs, so a dashboard parked on a
+    // spare screen can miss whole poll cycles. Re-check the moment the tab is seen again instead
+    // of waiting out the intervals.
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) { checkStatus(); checkForUpdate(); }
+    });
+    window.addEventListener('focus', checkStatus);
 })();
