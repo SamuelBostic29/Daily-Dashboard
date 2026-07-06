@@ -6,7 +6,7 @@
 // at this today"; a TODO says "I still owe this work" — so entries survive reloads and days
 // until explicitly removed from the TODO view. There is no automatic expiry.
 //
-// Entries keep the shared { id, title, meta, url, source, preview, labels } item shape plus a `type`
+// Entries keep the shared { id, title, meta, url, source, preview, labels, parentKey } item shape plus a `type`
 // ('email' | 'pr' | 'issue' | 'custom') that drives the TODO view's sub-headers (#42), and a
 // `status` ('todo' | 'in-progress') placing the entry in one of the view's two lanes (#65).
 
@@ -41,7 +41,10 @@
             url: item.url,
             source: item.source || '',
             preview: item.preview || '',
-            labels: Array.isArray(item.labels) ? item.labels : []
+            labels: Array.isArray(item.labels) ? item.labels : [],
+            // Optional Jira subtask→parent linkage (#72); '' for everything else. Carried so a
+            // subtask still nests under its parent once both have been added to the TODO list.
+            parentKey: item.parentKey || ''
         };
     }
 

@@ -173,6 +173,9 @@ header .refresh-pill.running .refresh-dot {
 #todo .badge { background: rgba(251, 191, 36, 0.2); color: #fde68a; }
 #todo .section-body { max-height: 75vh; }
 #todo .item { padding: 8px 22px; }
+/* `#todo .item` outranks the plain `.item-child` indent, so re-assert the child indent at the same
+   specificity for the TODO view's tighter rows (#72). */
+#todo .item-child { padding-left: 42px; }
 #todo .sub-group-label { padding: 10px 22px 4px; }
 
 .view-actions {
@@ -278,6 +281,21 @@ header .refresh-pill.running .refresh-dot {
 
 .item:last-child { border-bottom: none; }
 .item:hover { background: rgba(255, 255, 255, 0.04); padding-left: 26px; }
+
+/* Jira subtask nested under its parent story (#72): indent the child row and tie it to the parent
+   above with an elbow connector. The connector is a ::before pseudo-element, so nesting adds no DOM
+   per row. Placed after .item:hover so the child's indent wins over the shared hover shift. */
+.item-child { position: relative; padding-left: 46px; }
+.item-child:hover { padding-left: 50px; }
+.item-child::before {
+    content: '';
+    position: absolute;
+    left: 30px; top: 0; height: 50%; width: 9px;
+    border-left: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom-left-radius: 5px;
+}
+.item-child .item-primary { font-weight: 400; color: #cbd5e1; }
 
 .item-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 
