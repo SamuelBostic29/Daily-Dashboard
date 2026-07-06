@@ -120,14 +120,37 @@
     // writes running:true at launch and running:false in a finally block, so a crashed run still
     // clears here on the next poll.
     function applyStatus(running) {
+        if (running) { stopBurst(); pendingUntil = 0; }   // the run confirmed; the steady poll tracks its end
+        var pending = !running && Date.now() < pendingUntil;
         var btn = document.getElementById('refresh-btn');
         var pill = document.getElementById('refresh-pill');
-        if (btn) btn.disabled = running;
+        if (btn) btn.disabled = running || pending;
         if (pill) {
-            pill.classList.toggle('running', running);
+            pill.classList.toggle('running', running || pending);
             var label = pill.querySelector('.refresh-label');
-            if (label) label.textContent = running ? 'Refreshing…' : 'Up to date';
+            if (label) label.textContent = running ? 'Refreshing…' : (pending ? 'Starting…' : 'Up to date');
         }
+    }
+
+    // A click gets instant feedback via a distinct pending state: the button disables and the pill
+    // shows "Starting…" immediately, but it only claims "Refreshing…" once the run's running:true
+    // actually lands. The burst polls fast so that upgrade happens within a couple of seconds; if
+    // no run materializes by the deadline (e.g. gmc-refresh:// not registered), the final
+    // checkStatus finds pending expired and the pill honestly falls back to "Up to date".
+    var PENDING_MS = 30000;
+    var pendingUntil = 0;
+    var burstTimer = null;
+    function stopBurst() {
+        if (burstTimer) { clearInterval(burstTimer); burstTimer = null; }
+    }
+    function startBurst() {
+        stopBurst();
+        pendingUntil = Date.now() + PENDING_MS;
+        burstTimer = setInterval(function () {
+            if (Date.now() > pendingUntil) { stopBurst(); }   // expired: fall through to one last check
+            checkStatus();
+        }, 2000);
+        applyStatus(false);   // render the pending state now, before the first burst tick
     }
 
     function checkStatus() {
@@ -139,16 +162,24 @@
     }
 
     function triggerRefresh() {
-        // The pill and disabled button are driven solely by status.js (below), never optimistically:
-        // if the protocol launch fails (e.g. gmc-refresh:// not registered) no run starts, so the
-        // dashboard must NOT claim it's refreshing. The toast is the only instant feedback; the pill
-        // follows once a real run writes running:true.
+        // "Refreshing…" is still driven solely by status.js — a failed protocol launch must never
+        // show it. The instant reaction is the separate "Starting…" pending state startBurst
+        // renders, which self-reverts if no run confirms (see the comment above startBurst).
         window.location.href = 'gmc-refresh://run';
         DashboardBehavior.showToast('Refresh started…');
+        startBurst();
     }
 
     var refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) refreshBtn.addEventListener('click', triggerRefresh);
     setInterval(checkStatus, STATUS_INTERVAL_MS);
     checkStatus();
+
+    // Chrome throttles or freezes timers in hidden/occluded tabs, so a dashboard parked on a
+    // spare screen can miss whole poll cycles. Re-check the moment the tab is seen again instead
+    // of waiting out the intervals.
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) { checkStatus(); checkForUpdate(); }
+    });
+    window.addEventListener('focus', checkStatus);
 })();

@@ -22,6 +22,12 @@ $sessionSince = Get-Date -Format "o"
 # abort the briefing itself.
 function Write-Status([bool]$Running) {
     try {
+        # Runs can overlap (a hung briefing outliving the next scheduled one), and each writes this
+        # file. Clearing is owner-only: skip the running:false write unless the file still carries
+        # this session's since stamp, else a slow run's finally flips the indicator off — and
+        # re-enables the Refresh button — mid-flight of a newer run.
+        if (-not $Running -and (Test-Path $statusFile) -and
+            ((Get-Content -Path $statusFile -Raw) -notlike "*$sessionSince*")) { return }
         [string]$running = if ($Running) { 'true' } else { 'false' }
         Set-Content -Path $statusFile -Encoding UTF8 -Value `
             "window.BRIEFING_STATUS = { running: $running, since: `"$sessionSince`", trigger: `"$Trigger`" };"
@@ -34,7 +40,10 @@ if (-not (Test-Path $logsDir)) {
     New-Item -ItemType Directory -Path $logsDir | Out-Null
 }
 
-if ((Get-Date).DayOfWeek -eq [DayOfWeek]::Monday -and (Test-Path $logFile)) {
+# Weekly wipe, but only on Monday's first run of the day: every session start passes through here,
+# and an unconditional Monday wipe erased the same day's earlier sessions all Monday long.
+if ((Get-Date).DayOfWeek -eq [DayOfWeek]::Monday -and (Test-Path $logFile) -and
+    (Get-Item $logFile).LastWriteTime.Date -lt (Get-Date).Date) {
     Remove-Item $logFile -Force
 }
 
