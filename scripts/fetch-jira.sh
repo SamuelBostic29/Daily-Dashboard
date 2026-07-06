@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Fetch my open Jira tickets (Data Center) as dashboard items — the Jira half of the
 # Issues pane during the GitHub→Jira migration (issue #66). Emits a JSON array of
-# { id, title, meta, url, labels, source } objects to stdout; diagnostics go to stderr.
+# { id, title, meta, url, labels, source } objects to stdout (subtasks also carry an
+# optional parentKey for nesting, #72); diagnostics go to stderr.
 # The briefing's Issues agent concatenates this with the GitHub list into data/issues.js.
 #
 # Auth mirrors the `jira` skill exactly (its references/jira-token.md is the single source):
@@ -12,7 +13,7 @@ set -euo pipefail
 
 BASE="https://portal.myparadigm.com/rest/api/2"
 JQL="assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC"
-FIELDS="summary,status,updated,priority,issuetype,labels"
+FIELDS="summary,status,updated,priority,issuetype,labels,parent"
 PAGE=100
 
 # Resolve the token file: a provisioned (git-ignored) repo copy wins, else the home copy.
@@ -64,7 +65,10 @@ node -e '
     .map(i => {
       const f = i.fields;
       const days = Math.max(0, Math.floor((now - new Date(f.updated)) / 86400000));
-      return {
+      // Jira sets fields.parent only on sub-tasks (Data Center classic), so parentKey
+      // is the linkage that lets the dashboard nest a subtask under its parent story (#72);
+      // it is absent on stories/standalone issues, where the field is simply omitted.
+      const item = {
         id: "issue-" + i.key,
         title: f.summary,
         meta: i.key + " · " + f.status.name + " · " + days + "d ago",
@@ -72,6 +76,8 @@ node -e '
         labels: [f.issuetype.name, ...(f.labels || [])],
         source: "Jira",
       };
+      if (f.parent && f.parent.key) item.parentKey = f.parent.key;
+      return item;
     });
   process.stdout.write(JSON.stringify(items, null, 2));
 ' "$pages"

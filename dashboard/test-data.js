@@ -22,6 +22,8 @@ window.BRIEFING_DATA = {
     },
     issues: [
         { id: "issue-1", title: "Fusce dapibus tellus ac cursus commodo", meta: "LOREM-101 · Code review · 0d ago", url: "#", labels: ["Story", "feature"], source: "Jira" },
+        { id: "issue-6", title: "Maecenas faucibus mollis interdum", meta: "LOREM-104 · To Do · 1d ago", url: "#", labels: ["Sub-task"], source: "Jira", parentKey: "1" },
+        { id: "issue-7", title: "Cras mattis consectetur purus sit amet", meta: "LOREM-105 · In Progress · 0d ago", url: "#", labels: ["Sub-task"], source: "Jira", parentKey: "1" },
         { id: "issue-2", title: "Aenean lacinia bibendum nulla sed consectetur", meta: "acme/dolor-sit · #88 · 3d ago", url: "#", labels: ["enhancement"], source: "GitHub" },
         { id: "issue-3", title: "Donec ullamcorper nulla non metus auctor fringilla", meta: "LOREM-72 · In Progress · 12d ago", url: "#", labels: ["Bug", "priority"], source: "Jira" },
         { id: "issue-4", title: "Vivamus sagittis lacus vel augue laoreet", meta: "acme/adipiscing-elit · #45 · 30d ago", url: "#", labels: [], source: "GitHub" },

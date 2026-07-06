@@ -63,8 +63,11 @@
         var labels = showLabels
             ? ' · ' + item.labels.map(function (l) { return html`<span class="label-tag">${l}</span>`; }).join(' ')
             : '';
+        // A nested row (a Jira subtask under its parent, #72) gets the child modifier, which CSS
+        // turns into the indent + connector; otherwise it's an ordinary item.
+        var cls = 'item' + (opts.nested ? ' item-child' : '');
 
-        return html`<a class="item" href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" data-item-id="${item.id}">`
+        return html`<a class="${cls}" href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" data-item-id="${item.id}">`
             + html`<div class="item-row">${raw(lead)}<span class="item-primary">${item.title}</span>${raw(action)}</div>`
             + preview
             + html`<div class="item-meta">${item.meta}${raw(labels)}</div>`
@@ -95,7 +98,39 @@
     // An explicit source (set by the briefing fetchers) wins; otherwise derive it from the link.
     function resolveSource(item) { return item.source || sourceFromUrl(item.url); }
 
-    function renderIssueItem(item) { return renderItemBase(item, { lead: sourceChip(resolveSource(item)) }); }
+    function renderIssueItem(item, nested) { return renderItemBase(item, { lead: sourceChip(resolveSource(item)), nested: nested }); }
+
+    // Nest Jira subtasks (#72): render each parent/orphan in place, immediately followed by any of
+    // its children present in the SAME list, which renderFn draws indented (nested=true). A subtask
+    // whose parent isn't in this list — an orphan, or a parent sitting in another TODO lane — falls
+    // back to rendering flat, in its original position. Order is otherwise preserved. renderFn is
+    // the per-surface card (renderIssueItem on the dashboard, renderTodoItem in the TODO view).
+    function renderNestedIssues(items, renderFn) {
+        var present = {};
+        items.forEach(function (it) { present[it.id] = true; });
+        var parentIdOf = function (it) { return it.parentKey ? 'issue-' + it.parentKey : ''; };
+        var childrenOf = {};
+        items.forEach(function (it) {
+            var pid = parentIdOf(it);
+            if (pid && present[pid]) (childrenOf[pid] = childrenOf[pid] || []).push(it);
+        });
+        return items.filter(function (it) {
+            var pid = parentIdOf(it);
+            return !(pid && present[pid]);   // children are emitted under their parent below, not here
+        }).map(function (it) {
+            return renderFn(it, false)
+                + (childrenOf[it.id] || []).map(function (c) { return renderFn(c, true); }).join('');
+        }).join('');
+    }
+
+    // The dashboard Issues section: like renderSection, but nests subtasks under their parent.
+    function renderIssues(items) {
+        var body = document.getElementById('issues-body');
+        if (!body) return;
+        body.innerHTML = (items && items.length)
+            ? renderNestedIssues(items, renderIssueItem)
+            : renderList([], renderIssueItem);
+    }
 
     // One-click PR review entry point (#25): a leading Review button that launches an
     // interactive Claude review session via the gmc-review:// protocol (click handled in
@@ -159,9 +194,10 @@
     // remove (×), which deletes from the store (permanently) rather than dismissing for the day. PR
     // items keep the leading Review entry point here too — the type can't distinguish the review
     // queue from own PRs, so every PR gets the button and launchReview validates the URL on click.
-    function renderTodoItem(item) {
+    function renderTodoItem(item, nested) {
         return renderItemBase(item, {
             showPreview: false,
+            nested: nested,
             lead: sourceChip(resolveSource(item)) + (item.type === 'pr' ? reviewButton : ''),
             action: todoMoveButton(item)
                 + html`<button class="todo-remove-btn" type="button" aria-label="Remove from TODO">&times;</button>`
@@ -176,7 +212,12 @@
             ? TODO_GROUPS.map(function (group) {
                 var grouped = items.filter(function (item) { return item.type === group.type; });
                 if (!grouped.length) return '';
-                return html`<div class="sub-group-label">${group.label}</div>` + grouped.map(renderTodoItem).join('');
+                // Issues nest subtasks under their parent; nesting is confined to this lane's items,
+                // so a parent and child split across lanes (#72) render flat in their own lanes.
+                var rows = group.type === 'issue'
+                    ? renderNestedIssues(grouped, renderTodoItem)
+                    : grouped.map(renderTodoItem).join('');
+                return html`<div class="sub-group-label">${group.label}</div>` + rows;
             }).join('')
             : html`<div class="todo-lane-empty">${emptyHint}</div>`;
         return html`<div class="todo-lane" data-lane-status="${status}">`
@@ -216,6 +257,7 @@
         renderTodoItem: renderTodoItem,
         renderList: renderList,
         renderSection: renderSection,
+        renderIssues: renderIssues,
         renderPRs: renderPRs,
         renderTodo: renderTodo
     };

@@ -9,7 +9,7 @@
 
     DashboardRenderers.renderSection('emails', data.emails, DashboardRenderers.renderEmailItem);
     DashboardRenderers.renderPRs(data.prs);
-    DashboardRenderers.renderSection('issues', data.issues, DashboardRenderers.renderIssueItem);
+    DashboardRenderers.renderIssues(data.issues);
 
     DashboardBehavior.init({ scope: 'preview' });
     DashboardBehavior.applyDismissed();

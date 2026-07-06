@@ -98,7 +98,8 @@ window.BRIEFING_ISSUES = [
         "meta": "KEY · status · Xd ago",
         "url": ticket URL,
         "labels": [ label name strings ],
-        "source": "Jira"
+        "source": "Jira",
+        "parentKey": parent story key on subtasks only, omitted otherwise (#72)
     },
     ...
 ];
