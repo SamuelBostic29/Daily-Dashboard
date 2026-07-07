@@ -20,11 +20,6 @@ export default [
                 TodoStore: 'readonly',
             },
         },
-        rules: {
-            // The existing code's empty catch blocks carry their "why" as a comment and no
-            // binding use — don't force the binding to be consumed.
-            'no-unused-vars': ['error', { caughtErrors: 'none' }],
-        },
     },
     {
         files: ['tests/**/*.js'],
@@ -32,6 +27,25 @@ export default [
             ecmaVersion: 2022,
             sourceType: 'commonjs',
             globals: globals.node,
+        },
+    },
+    {
+        // The page targets modern browsers (even over file://) — ES6+ is enforced, not aspirational.
+        rules: {
+            'no-var': 'error',
+            'prefer-const': 'error',
+            'prefer-arrow-callback': 'error',
+            'prefer-template': 'error',
+            'object-shorthand': ['error', 'always'],
+        },
+    },
+    {
+        // renderers.js builds markup by concatenating html``-tagged fragments; rewriting those
+        // joins as plain template literals would visually blur the escaped/unescaped seam the
+        // html`` tag exists to mark, so string concatenation stays legal in this one file.
+        files: ['dashboard/renderers.js'],
+        rules: {
+            'prefer-template': 'off',
         },
     },
 ];

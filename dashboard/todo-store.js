@@ -11,14 +11,14 @@
 // `status` ('todo' | 'in-progress') placing the entry in one of the view's two lanes (#65).
 
 (function () {
-    var ITEM_TYPES = ['email', 'pr', 'issue'];
-    var storageKey; // set by init()
-    var items = [];
+    const ITEM_TYPES = ['email', 'pr', 'issue'];
+    let storageKey; // set by init()
+    let items = [];
 
     function persist() {
         try {
             localStorage.setItem(storageKey, JSON.stringify(items));
-        } catch (e) {
+        } catch {
             /* keep the in-memory list usable */
         }
     }
@@ -26,7 +26,7 @@
     // Dashboard ids are prefixed per the briefing contract ('email-…' / 'pr-…' / 'issue-…');
     // anything else (e.g. #43's custom entries) falls back to an explicit type or 'custom'.
     function typeOf(item) {
-        var prefix = String(item.id).split('-')[0];
+        const prefix = String(item.id).split('-')[0];
         return ITEM_TYPES.indexOf(prefix) >= 0 ? prefix : item.type || 'custom';
     }
 
@@ -54,12 +54,12 @@
 
     // Add items to the list, skipping ids already on it. Returns the number actually added.
     function add(newItems) {
-        var added = 0;
-        (newItems || []).forEach(function (item) {
+        let added = 0;
+        (newItems || []).forEach((item) => {
             if (
                 !item ||
                 !item.id ||
-                items.some(function (t) {
+                items.some((t) => {
                     return t.id === item.id;
                 })
             )
@@ -72,8 +72,8 @@
     }
 
     function remove(id) {
-        var before = items.length;
-        items = items.filter(function (t) {
+        const before = items.length;
+        items = items.filter((t) => {
             return t.id !== id;
         });
         if (items.length !== before) persist();
@@ -82,9 +82,9 @@
     // Move an entry between lanes; unknown values normalize to 'todo' (matching toEntry). all()
     // still returns every entry — rendering filters by status — so this only flips a field.
     function setStatus(id, status) {
-        var next = status === 'in-progress' ? 'in-progress' : 'todo';
-        var changed = false;
-        items.forEach(function (t) {
+        const next = status === 'in-progress' ? 'in-progress' : 'todo';
+        let changed = false;
+        items.forEach((t) => {
             if (t.id === id && t.status !== next) {
                 t.status = next;
                 changed = true;
@@ -98,20 +98,20 @@
     }
 
     function init(opts) {
-        storageKey = 'dashboard-todo-' + ((opts && opts.scope) || 'live');
+        storageKey = `dashboard-todo-${(opts && opts.scope) || 'live'}`;
         // Corrupt or blocked storage must not take down the page — and that holds per entry
         // too: a hand-edited store degrades to its valid entries, re-normalized via toEntry().
         try {
-            var stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
             items = (Array.isArray(stored) ? stored : [])
-                .filter(function (t) {
+                .filter((t) => {
                     return t && t.id;
                 })
                 .map(toEntry);
-        } catch (e) {
+        } catch {
             items = [];
         }
     }
 
-    window.TodoStore = { init: init, add: add, remove: remove, setStatus: setStatus, all: all };
+    window.TodoStore = { init, add, remove, setStatus, all };
 })();

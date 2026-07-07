@@ -3,7 +3,7 @@
 // is intentionally static. Loaded last, after renderers.js, behavior.js, and test-data.js.
 
 (function () {
-    var data = window.BRIEFING_DATA || {
+    const data = window.BRIEFING_DATA || {
         generatedAt: '',
         emails: [],
         prs: { mine: [], review: [] },
