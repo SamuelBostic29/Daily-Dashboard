@@ -1,0 +1,8 @@
+# Prettier also skips everything in .gitignore (node_modules/, dashboard/data/, plans/, logs/, …).
+# Markdown (README, CLAUDE.md, prompts/) is hand-formatted — line breaks there are deliberate.
+*.md
+# The two dashboard pages are hand-written zero-build HTML; Prettier's HTML style reflows them
+# wholesale (attribute-per-line, void slashes) for no correctness gain — they stay hand-formatted.
+# (JS is still formatted — with embeddedLanguageFormatting off, so the html`` markup the renderers
+# build from deliberately-unbalanced tag fragments is never "corrected" by the HTML formatter.)
+*.html

@@ -8,7 +8,7 @@
         generatedAt: (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || '',
         emails: window.BRIEFING_EMAILS || [],
         prs: window.BRIEFING_PRS || { mine: [], review: [] },
-        issues: window.BRIEFING_ISSUES || []
+        issues: window.BRIEFING_ISSUES || [],
     };
     var data = window.BRIEFING_DATA;
     var lastGeneratedAt = data.generatedAt;
@@ -17,8 +17,9 @@
     var STATUS_INTERVAL_MS = 15000; // how often we poll data/status.js for a running briefing (#17)
 
     function renderAll() {
-        document.getElementById('timestamp').textContent =
-            data.generatedAt ? 'Last refreshed: ' + data.generatedAt : '';
+        document.getElementById('timestamp').textContent = data.generatedAt
+            ? 'Last refreshed: ' + data.generatedAt
+            : '';
         DashboardRenderers.renderSection('emails', data.emails, DashboardRenderers.renderEmailItem);
         DashboardRenderers.renderPRs(data.prs);
         DashboardRenderers.renderIssues(data.issues);
@@ -36,7 +37,7 @@
 
     function setRefreshStatus() {
         var el = document.getElementById('refresh-status');
-        if ((Date.now() - lastUpdateMs) > 2 * pollIntervalMs()) {
+        if (Date.now() - lastUpdateMs > 2 * pollIntervalMs()) {
             el.textContent = 'Waiting for update…';
             el.classList.add('stale');
         } else {
@@ -50,44 +51,62 @@
         // can fire NEITHER onload nor onerror (this stranded the #17 status poll, leaving the
         // "Refreshing…" pill stuck on), so a timeout guarantees a verdict either way.
         var done = false;
-        function finish(ok) { if (done) return; done = true; cb(ok); }
+        function finish(ok) {
+            if (done) return;
+            done = true;
+            cb(ok);
+        }
         // Try a cache-busted URL first (works over http and on most file:// setups). Some
         // browsers reject the query on file:// (treat it as a missing filename) — fall back
         // to the bare path, which re-reads from disk since file:// isn't HTTP-cached.
         var s = document.createElement('script');
         s.src = src + '?v=' + Date.now();
-        s.onload = function() { s.remove(); finish(true); };
-        s.onerror = function() {
+        s.onload = function () {
+            s.remove();
+            finish(true);
+        };
+        s.onerror = function () {
             s.remove();
             var bare = document.createElement('script');
             bare.src = src;
-            bare.onload = function() { bare.remove(); finish(true); };
-            bare.onerror = function() { bare.remove(); finish(false); };
+            bare.onload = function () {
+                bare.remove();
+                finish(true);
+            };
+            bare.onerror = function () {
+                bare.remove();
+                finish(false);
+            };
             document.head.appendChild(bare);
         };
         document.head.appendChild(s);
-        setTimeout(function() { finish(false); }, 5000);   // local reads finish in ms; 5s = "it's not coming"
+        setTimeout(function () {
+            finish(false);
+        }, 5000); // local reads finish in ms; 5s = "it's not coming"
     }
 
     function reloadData() {
         // Preserve per-section scroll and page position across the re-render.
         var scrolls = {};
-        document.querySelectorAll('.section-body').forEach(function(b) { scrolls[b.id] = b.scrollTop; });
+        document.querySelectorAll('.section-body').forEach(function (b) {
+            scrolls[b.id] = b.scrollTop;
+        });
         var pageY = window.scrollY;
 
         // data/meta.js is written last by the briefing, so the data files are already fresh.
         var files = ['../data/emails.js', '../data/prs.js', '../data/issues.js'];
         var pending = files.length;
-        files.forEach(function(f) {
-            injectScript(f, function() {
+        files.forEach(function (f) {
+            injectScript(f, function () {
                 if (--pending > 0) return;
                 data.emails = window.BRIEFING_EMAILS || [];
                 data.prs = window.BRIEFING_PRS || { mine: [], review: [] };
                 data.issues = window.BRIEFING_ISSUES || [];
-                data.generatedAt = (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || data.generatedAt;
-                lastGeneratedAt = data.generatedAt;   // advance only on success, so a failed reload retries next poll
+                data.generatedAt =
+                    (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || data.generatedAt;
+                lastGeneratedAt = data.generatedAt; // advance only on success, so a failed reload retries next poll
                 renderAll();
-                Object.keys(scrolls).forEach(function(id) {
+                Object.keys(scrolls).forEach(function (id) {
                     var b = document.getElementById(id);
                     if (b) b.scrollTop = scrolls[id];
                 });
@@ -99,11 +118,11 @@
     }
 
     function checkForUpdate() {
-        injectScript('../data/meta.js', function(ok) {
+        injectScript('../data/meta.js', function (ok) {
             if (ok) {
                 var gen = window.BRIEFING_META && window.BRIEFING_META.generatedAt;
                 if (gen && gen !== lastGeneratedAt) {
-                    reloadData();   // lastGeneratedAt advances inside reloadData's completion
+                    reloadData(); // lastGeneratedAt advances inside reloadData's completion
                     return;
                 }
             }
@@ -120,7 +139,10 @@
     // writes running:true at launch and running:false in a finally block, so a crashed run still
     // clears here on the next poll.
     function applyStatus(running) {
-        if (running) { stopBurst(); pendingUntil = 0; }   // the run confirmed; the steady poll tracks its end
+        if (running) {
+            stopBurst();
+            pendingUntil = 0;
+        } // the run confirmed; the steady poll tracks its end
         var pending = !running && Date.now() < pendingUntil;
         var btn = document.getElementById('refresh-btn');
         var pill = document.getElementById('refresh-pill');
@@ -128,7 +150,7 @@
         if (pill) {
             pill.classList.toggle('running', running || pending);
             var label = pill.querySelector('.refresh-label');
-            if (label) label.textContent = running ? 'Refreshing…' : (pending ? 'Starting…' : 'Up to date');
+            if (label) label.textContent = running ? 'Refreshing…' : pending ? 'Starting…' : 'Up to date';
         }
     }
 
@@ -141,16 +163,21 @@
     var pendingUntil = 0;
     var burstTimer = null;
     function stopBurst() {
-        if (burstTimer) { clearInterval(burstTimer); burstTimer = null; }
+        if (burstTimer) {
+            clearInterval(burstTimer);
+            burstTimer = null;
+        }
     }
     function startBurst() {
         stopBurst();
         pendingUntil = Date.now() + PENDING_MS;
         burstTimer = setInterval(function () {
-            if (Date.now() > pendingUntil) { stopBurst(); }   // expired: fall through to one last check
+            if (Date.now() > pendingUntil) {
+                stopBurst();
+            } // expired: fall through to one last check
             checkStatus();
         }, 2000);
-        applyStatus(false);   // render the pending state now, before the first burst tick
+        applyStatus(false); // render the pending state now, before the first burst tick
     }
 
     function checkStatus() {
@@ -179,7 +206,10 @@
     // spare screen can miss whole poll cycles. Re-check the moment the tab is seen again instead
     // of waiting out the intervals.
     document.addEventListener('visibilitychange', function () {
-        if (!document.hidden) { checkStatus(); checkForUpdate(); }
+        if (!document.hidden) {
+            checkStatus();
+            checkForUpdate();
+        }
     });
     window.addEventListener('focus', checkStatus);
 })();

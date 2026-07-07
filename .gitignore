@@ -1,5 +1,6 @@
 logs/
 WorkingFiles/
 plans/
+node_modules/
 dashboard/data/*.js
 config/review-owners.json

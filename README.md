@@ -122,6 +122,10 @@ cd Daily-Dashboard
 
 To preview the layout without any live data, just open `dashboard/preview/preview.html` — it renders the bundled sample data in `dashboard/test-data.js`.
 
+### Dev setup (contributors only)
+
+The dashboard itself needs no install or build — the page runs straight off `file://`. The only tooling is for development: `npm install` pulls ESLint and Prettier (dev-only dependencies), and `npm run lint` / `npm run format:check` / `npm test` are the checks CI runs.
+
 ### Configuration
 
 The GitHub PR query in `CLAUDE.md` is scoped to a specific account. To use your own, update the login in the `gh api` query: `involves:SBosticParadigm` → `involves:<your-login>`.
