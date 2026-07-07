@@ -1,4 +1,4 @@
 {
-  "ghAccount": "SBosticParadigm",
-  "_comment": "Pins the gh account for the briefing's gh data calls in this project, overriding the owner-based gh-account-guard hook (this repo is personal-owned but queries Paradigm work data). Change this value to another authed gh account to switch on the fly. Does not affect git push/pull of this repo."
+    "ghAccount": "SBosticParadigm",
+    "_comment": "Pins the gh account for the briefing's gh data calls in this project, overriding the owner-based gh-account-guard hook (this repo is personal-owned but queries Paradigm work data). Change this value to another authed gh account to switch on the fly. Does not affect git push/pull of this repo."
 }

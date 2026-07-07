@@ -1,6 +1,6 @@
 {
-  "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-  "startTime": "07:30",
-  "endTime": "17:30",
-  "intervalMinutes": 30
+    "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    "startTime": "07:30",
+    "endTime": "17:30",
+    "intervalMinutes": 30
 }

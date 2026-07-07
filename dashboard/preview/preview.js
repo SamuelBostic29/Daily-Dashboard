@@ -3,7 +3,12 @@
 // is intentionally static. Loaded last, after renderers.js, behavior.js, and test-data.js.
 
 (function () {
-    var data = window.BRIEFING_DATA || { generatedAt: '', emails: [], prs: { mine: [], review: [] }, issues: [] };
+    var data = window.BRIEFING_DATA || {
+        generatedAt: '',
+        emails: [],
+        prs: { mine: [], review: [] },
+        issues: [],
+    };
 
     document.getElementById('timestamp').textContent = data.generatedAt;
 

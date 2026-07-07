@@ -1,6 +1,8 @@
 /* Preview-only overrides on top of the shared styles.css: a flat background plus the two
    decorative glow layers. The live dashboard (template/template.html) uses styles.css alone. */
-body { background: #1a1520; }
+body {
+    background: #1a1520;
+}
 
 .bg-glow {
     position: fixed;

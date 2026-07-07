@@ -14,12 +14,12 @@
 
 (function () {
     var SECTION_IDS = ['emails', 'prs', 'issues', 'todo'];
-    var USER_NAME = 'Sam';   // greeting name — change this to make the dashboard yours
-    var storageKey;   // set by init(); scoped per page so preview can't mutate the live set
+    var USER_NAME = 'Sam'; // greeting name — change this to make the dashboard yours
+    var storageKey; // set by init(); scoped per page so preview can't mutate the live set
     var dismissed = [];
 
     function itemSelector(id) {
-        var v = (window.CSS && CSS.escape) ? CSS.escape(id) : String(id).replace(/["\\]/g, '\\$&');
+        var v = window.CSS && CSS.escape ? CSS.escape(id) : String(id).replace(/["\\]/g, '\\$&');
         return '[data-item-id="' + v + '"]';
     }
 
@@ -64,7 +64,7 @@
         }
         var reviewBtn = e.target.closest && e.target.closest('.review-btn');
         if (reviewBtn) {
-            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.preventDefault(); // the button lives inside the item's <a>; don't follow the link
             e.stopPropagation();
             var reviewCard = reviewBtn.closest('[data-item-id]');
             if (!reviewCard) return;
@@ -73,17 +73,20 @@
         }
         var moveBtn = e.target.closest && e.target.closest('.todo-move-btn');
         if (moveBtn) {
-            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.preventDefault(); // the button lives inside the item's <a>; don't follow the link
             e.stopPropagation();
             var moveItem = moveBtn.closest('[data-item-id]');
             if (!moveItem) return;
-            TodoStore.setStatus(moveItem.getAttribute('data-item-id'), moveBtn.getAttribute('data-target-status'));
+            TodoStore.setStatus(
+                moveItem.getAttribute('data-item-id'),
+                moveBtn.getAttribute('data-target-status'),
+            );
             refreshTodo();
             return;
         }
         var removeBtn = e.target.closest && e.target.closest('.todo-remove-btn');
         if (removeBtn) {
-            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.preventDefault(); // the button lives inside the item's <a>; don't follow the link
             e.stopPropagation();
             var todoItem = removeBtn.closest('[data-item-id]');
             if (!todoItem) return;
@@ -93,14 +96,18 @@
         }
         var btn = e.target.closest && e.target.closest('.dismiss-btn');
         if (btn) {
-            e.preventDefault();   // the button lives inside the item's <a>; don't follow the link
+            e.preventDefault(); // the button lives inside the item's <a>; don't follow the link
             e.stopPropagation();
             var item = btn.closest('[data-item-id]');
             if (!item) return;
             var id = item.getAttribute('data-item-id');
             if (dismissed.indexOf(id) === -1) {
                 dismissed.push(id);
-                try { localStorage.setItem(storageKey, JSON.stringify(dismissed)); } catch (err) { /* still dismiss in-page */ }
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(dismissed));
+                } catch (err) {
+                    /* still dismiss in-page */
+                }
             }
             item.classList.add('dismissed');
             updateBadges();
@@ -119,7 +126,9 @@
     var draggingId = null;
 
     function clearDragOver() {
-        document.querySelectorAll('.todo-lane.drag-over').forEach(function (l) { l.classList.remove('drag-over'); });
+        document.querySelectorAll('.todo-lane.drag-over').forEach(function (l) {
+            l.classList.remove('drag-over');
+        });
     }
 
     function onDragStart(e) {
@@ -127,7 +136,11 @@
         if (!card) return;
         draggingId = card.getAttribute('data-item-id');
         e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', draggingId); } catch (err) { /* still drags via the closure var */ }
+        try {
+            e.dataTransfer.setData('text/plain', draggingId);
+        } catch (err) {
+            /* still drags via the closure var */
+        }
         card.classList.add('dragging');
     }
 
@@ -135,11 +148,14 @@
         if (!draggingId) return;
         var lane = e.target.closest && e.target.closest('#view-todo .todo-lane');
         if (!lane) return;
-        e.preventDefault();   // a valid drop target must cancel dragover
+        e.preventDefault(); // a valid drop target must cancel dragover
         e.dataTransfer.dropEffect = 'move';
         // Re-highlight only when crossing into a different lane, so moving over a lane's own
         // children doesn't flicker the highlight off and on.
-        if (!lane.classList.contains('drag-over')) { clearDragOver(); lane.classList.add('drag-over'); }
+        if (!lane.classList.contains('drag-over')) {
+            clearDragOver();
+            lane.classList.add('drag-over');
+        }
     }
 
     function onDrop(e) {
@@ -150,7 +166,7 @@
         TodoStore.setStatus(draggingId, lane.getAttribute('data-lane-status'));
         draggingId = null;
         clearDragOver();
-        refreshTodo();   // re-renders both lanes; the .dragging node is replaced wholesale
+        refreshTodo(); // re-renders both lanes; the .dragging node is replaced wholesale
     }
 
     function onDragEnd() {
@@ -166,7 +182,7 @@
             setModalOpen(false);
             return;
         }
-        if (modalOpen()) return;   // typing in the dialog must not drive section/selection keys
+        if (modalOpen()) return; // typing in the dialog must not drive section/selection keys
         if (e.key === 'Escape' && selecting()) {
             finishSelection(false);
             return;
@@ -209,7 +225,7 @@
 
     function initTabs() {
         var tablist = document.querySelector('.view-tabs');
-        if (!tablist) return;   // a surface without tabs keeps working unchanged
+        if (!tablist) return; // a surface without tabs keeps working unchanged
         tablist.addEventListener('click', function (e) {
             var tab = e.target.closest('.view-tab');
             if (tab) activateTab(tab);
@@ -217,7 +233,7 @@
         tablist.addEventListener('keydown', function (e) {
             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
             e.preventDefault();
-            e.stopPropagation();   // arrows inside the tablist must not also drive section nav
+            e.stopPropagation(); // arrows inside the tablist must not also drive section nav
             var tabs = Array.prototype.slice.call(tablist.querySelectorAll('.view-tab'));
             var cur = tabs.indexOf(e.target.closest('.view-tab'));
             if (cur < 0) return;
@@ -273,10 +289,16 @@
 
     function initSelection() {
         var addBtn = document.getElementById('add-to-todo-btn');
-        if (!addBtn) return;   // a surface without the action bar keeps working unchanged
-        addBtn.addEventListener('click', function () { setSelecting(true); });
-        document.getElementById('selection-done-btn').addEventListener('click', function () { finishSelection(true); });
-        document.getElementById('selection-cancel-btn').addEventListener('click', function () { finishSelection(false); });
+        if (!addBtn) return; // a surface without the action bar keeps working unchanged
+        addBtn.addEventListener('click', function () {
+            setSelecting(true);
+        });
+        document.getElementById('selection-done-btn').addEventListener('click', function () {
+            finishSelection(true);
+        });
+        document.getElementById('selection-cancel-btn').addEventListener('click', function () {
+            finishSelection(false);
+        });
     }
 
     // Custom item modal (#43): the TODO view's "+ New Item" opens a dialog with Label /
@@ -303,19 +325,25 @@
 
     function initCustomModal() {
         var openBtn = document.getElementById('add-custom-btn');
-        if (!openBtn) return;   // a surface without the TODO view keeps working unchanged
-        openBtn.addEventListener('click', function () { setModalOpen(true); });
-        document.getElementById('custom-cancel-btn').addEventListener('click', function () { setModalOpen(false); });
+        if (!openBtn) return; // a surface without the TODO view keeps working unchanged
+        openBtn.addEventListener('click', function () {
+            setModalOpen(true);
+        });
+        document.getElementById('custom-cancel-btn').addEventListener('click', function () {
+            setModalOpen(false);
+        });
         document.querySelector('#custom-item-modal form').addEventListener('submit', function (e) {
             e.preventDefault();
-            TodoStore.add([{
-                // Random suffix keeps two quick adds from colliding on the same millisecond.
-                id: 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-                type: 'custom',
-                title: document.getElementById('custom-label').value.trim(),
-                meta: document.getElementById('custom-description').value.trim(),
-                url: document.getElementById('custom-link').value.trim()
-            }]);
+            TodoStore.add([
+                {
+                    // Random suffix keeps two quick adds from colliding on the same millisecond.
+                    id: 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+                    type: 'custom',
+                    title: document.getElementById('custom-label').value.trim(),
+                    meta: document.getElementById('custom-description').value.trim(),
+                    url: document.getElementById('custom-link').value.trim(),
+                },
+            ]);
             refreshTodo();
             setModalOpen(false);
         });
@@ -330,8 +358,11 @@
             showToast('No GitHub PR URL on this item.');
             return;
         }
-        window.location.href = 'gmc-review://review?url=' + encodeURIComponent(item.url)
-            + '&title=' + encodeURIComponent(item.title);
+        window.location.href =
+            'gmc-review://review?url=' +
+            encodeURIComponent(item.url) +
+            '&title=' +
+            encodeURIComponent(item.title);
         showToast('Launching review session…');
     }
 
@@ -349,16 +380,26 @@
         toast.textContent = message;
         toast.classList.add('show');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 3000);
+        toastTimer = setTimeout(function () {
+            toast.classList.remove('show');
+        }, 3000);
     }
 
     function setGreeting() {
         var hour = new Date().getHours();
-        var mornings = ["Good Morning", "Rise and Shine", "Let's Get It", "Top of the Morning", "Ready to Roll", "New Day, New Wins", "Coffee's Ready"];
-        var afternoons = ["Good Afternoon", "Still at It", "Afternoon Check-in", "How's the Day Going"];
-        var evenings = ["Good Evening", "Burning the Midnight Oil", "Late Night Grind", "Wrapping Up"];
+        var mornings = [
+            'Good Morning',
+            'Rise and Shine',
+            "Let's Get It",
+            'Top of the Morning',
+            'Ready to Roll',
+            'New Day, New Wins',
+            "Coffee's Ready",
+        ];
+        var afternoons = ['Good Afternoon', 'Still at It', 'Afternoon Check-in', "How's the Day Going"];
+        var evenings = ['Good Evening', 'Burning the Midnight Oil', 'Late Night Grind', 'Wrapping Up'];
         var greetings = hour < 12 ? mornings : hour < 17 ? afternoons : evenings;
-        var pick = greetings[Math.floor(Math.random() * greetings.length)] + ", " + USER_NAME;
+        var pick = greetings[Math.floor(Math.random() * greetings.length)] + ', ' + USER_NAME;
         var el = document.getElementById('greeting');
         if (el) el.textContent = pick;
         document.title = pick;
@@ -374,7 +415,7 @@
         // scope, so its list is isolated per page the same way.
         var scope = (opts && opts.scope) || 'live';
         TodoStore.init({ scope: scope });
-        refreshTodo();   // hydrate the TODO view from storage on load
+        refreshTodo(); // hydrate the TODO view from storage on load
         var today = new Date().toISOString().slice(0, 10);
         var keyBase = 'dashboard-dismissed-' + scope + '-';
         storageKey = keyBase + today;
@@ -382,19 +423,24 @@
         // and everything under the legacy 'gmc-dismissed-' prefix from before the rename —
         // migrating today's legacy entries first so a mid-day upgrade doesn't resurrect them.
         try {
-            var legacyToday = JSON.parse(localStorage.getItem('gmc-dismissed-' + scope + '-' + today) || '[]');
+            var legacyToday = JSON.parse(
+                localStorage.getItem('gmc-dismissed-' + scope + '-' + today) || '[]',
+            );
             Object.keys(localStorage).forEach(function (key) {
                 var legacy = key.indexOf('gmc-dismissed-') === 0;
-                if (legacy || (key.indexOf(keyBase) === 0 && key !== storageKey)) localStorage.removeItem(key);
+                if (legacy || (key.indexOf(keyBase) === 0 && key !== storageKey))
+                    localStorage.removeItem(key);
             });
             var stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
             dismissed = Array.isArray(stored) ? stored : [];
             if (Array.isArray(legacyToday) && legacyToday.length) {
-                legacyToday.forEach(function (id) { if (dismissed.indexOf(id) === -1) dismissed.push(id); });
+                legacyToday.forEach(function (id) {
+                    if (dismissed.indexOf(id) === -1) dismissed.push(id);
+                });
                 localStorage.setItem(storageKey, JSON.stringify(dismissed));
             }
         } catch (e) {
-            dismissed = [];   // corrupt entry or blocked storage must not take down the page
+            dismissed = []; // corrupt entry or blocked storage must not take down the page
         }
         if (!Array.isArray(dismissed)) dismissed = [];
         document.addEventListener('click', onClick);
@@ -405,5 +451,10 @@
         document.addEventListener('dragend', onDragEnd);
     }
 
-    window.DashboardBehavior = { init: init, applyDismissed: applyDismissed, updateBadges: updateBadges, showToast: showToast };
+    window.DashboardBehavior = {
+        init: init,
+        applyDismissed: applyDismissed,
+        updateBadges: updateBadges,
+        showToast: showToast,
+    };
 })();

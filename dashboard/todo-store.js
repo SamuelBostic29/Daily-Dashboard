@@ -12,18 +12,22 @@
 
 (function () {
     var ITEM_TYPES = ['email', 'pr', 'issue'];
-    var storageKey;   // set by init()
+    var storageKey; // set by init()
     var items = [];
 
     function persist() {
-        try { localStorage.setItem(storageKey, JSON.stringify(items)); } catch (e) { /* keep the in-memory list usable */ }
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(items));
+        } catch (e) {
+            /* keep the in-memory list usable */
+        }
     }
 
     // Dashboard ids are prefixed per the briefing contract ('email-…' / 'pr-…' / 'issue-…');
     // anything else (e.g. #43's custom entries) falls back to an explicit type or 'custom'.
     function typeOf(item) {
         var prefix = String(item.id).split('-')[0];
-        return ITEM_TYPES.indexOf(prefix) >= 0 ? prefix : (item.type || 'custom');
+        return ITEM_TYPES.indexOf(prefix) >= 0 ? prefix : item.type || 'custom';
     }
 
     // One normalizer for everything that enters the in-memory list — items added from the
@@ -44,7 +48,7 @@
             labels: Array.isArray(item.labels) ? item.labels : [],
             // Optional Jira subtask→parent linkage (#72); '' for everything else. Carried so a
             // subtask still nests under its parent once both have been added to the TODO list.
-            parentKey: item.parentKey || ''
+            parentKey: item.parentKey || '',
         };
     }
 
@@ -52,7 +56,14 @@
     function add(newItems) {
         var added = 0;
         (newItems || []).forEach(function (item) {
-            if (!item || !item.id || items.some(function (t) { return t.id === item.id; })) return;
+            if (
+                !item ||
+                !item.id ||
+                items.some(function (t) {
+                    return t.id === item.id;
+                })
+            )
+                return;
             items.push(toEntry(item));
             added++;
         });
@@ -62,7 +73,9 @@
 
     function remove(id) {
         var before = items.length;
-        items = items.filter(function (t) { return t.id !== id; });
+        items = items.filter(function (t) {
+            return t.id !== id;
+        });
         if (items.length !== before) persist();
     }
 
@@ -72,12 +85,17 @@
         var next = status === 'in-progress' ? 'in-progress' : 'todo';
         var changed = false;
         items.forEach(function (t) {
-            if (t.id === id && t.status !== next) { t.status = next; changed = true; }
+            if (t.id === id && t.status !== next) {
+                t.status = next;
+                changed = true;
+            }
         });
         if (changed) persist();
     }
 
-    function all() { return items.slice(); }
+    function all() {
+        return items.slice();
+    }
 
     function init(opts) {
         storageKey = 'dashboard-todo-' + ((opts && opts.scope) || 'live');
@@ -86,7 +104,9 @@
         try {
             var stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
             items = (Array.isArray(stored) ? stored : [])
-                .filter(function (t) { return t && t.id; })
+                .filter(function (t) {
+                    return t && t.id;
+                })
                 .map(toEntry);
         } catch (e) {
             items = [];

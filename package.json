@@ -1,0 +1,20 @@
+{
+    "name": "daily-dashboard",
+    "private": true,
+    "description": "Dev tooling for the Daily Dashboard. The dashboard itself is a zero-build static page — nothing here is required to run it.",
+    "license": "MIT",
+    "scripts": {
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test": "node --test tests/"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.30.0",
+        "eslint": "^9.30.0",
+        "eslint-config-prettier": "^10.1.0",
+        "globals": "^16.2.0",
+        "prettier": "^3.6.0"
+    }
+}

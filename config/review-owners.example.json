@@ -1,4 +1,4 @@
 {
-  "allowedOwners": [],
-  "_comment": "Template for config/review-owners.json (which is git-ignored — it holds your personal list). Copy this file to config/review-owners.json and add the GitHub owners the one-click PR review launcher may clone from, e.g. [\"WTS-Paradigm\", \"your-personal-account\"]. Owners are matched case-insensitively. The launcher fails closed: an empty list (like this template) refuses every review until you populate it."
+    "allowedOwners": [],
+    "_comment": "Template for config/review-owners.json (which is git-ignored — it holds your personal list). Copy this file to config/review-owners.json and add the GitHub owners the one-click PR review launcher may clone from, e.g. [\"WTS-Paradigm\", \"your-personal-account\"]. Owners are matched case-insensitively. The launcher fails closed: an empty list (like this template) refuses every review until you populate it."
 }
