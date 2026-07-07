@@ -1,5 +1,8 @@
 # Daily Dashboard
 
+[![CI](https://github.com/SamuelBostic29/Daily-Dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelBostic29/Daily-Dashboard/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A personal dashboard that aggregates your work context from Microsoft 365 and GitHub into a single local view. Instead of being a standalone app, the dashboard is driven by a **Claude Code workflow**: Claude fetches your latest data, writes it to a set of small JavaScript files, and a static HTML template stitches them together into a clean, glanceable page.
 
 ![Daily Dashboard](assets/dashboard-preview.png)

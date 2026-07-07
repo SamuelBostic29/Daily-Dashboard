@@ -1,0 +1,23 @@
+# Lint, format, and unit-test gates for every push/PR. Tests are pure Node (node:test over
+# node:vm sandboxes) — nothing Windows-specific runs here, so ubuntu is fine and fast.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
