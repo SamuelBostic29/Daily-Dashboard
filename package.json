@@ -8,7 +8,7 @@
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "test": "node --test"
+        "test": "node --test tests/renderers.test.js tests/todo-store.test.js"
     },
     "devDependencies": {
         "@eslint/js": "^9.30.0",
