@@ -3,5 +3,11 @@
     "tabWidth": 4,
     "singleQuote": true,
     "endOfLine": "auto",
-    "embeddedLanguageFormatting": "off"
+    "embeddedLanguageFormatting": "off",
+    "overrides": [
+        {
+            "files": ["*.yml", "*.yaml"],
+            "options": { "tabWidth": 2 }
+        }
+    ]
 }
