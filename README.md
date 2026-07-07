@@ -16,7 +16,7 @@ When you tell Claude Code to **"Run the morning briefing"**, it spins up three a
 |--------|------|
 | **Microsoft 365 Mail** | Your 25 most recent unread emails (AI code-review bot noise filtered out) |
 | **GitHub Pull Requests** | Open PRs you authored *and* PRs that involve you (split into "My PRs" and "Needs My Review") |
-| **Assigned Issues** | Open issues/tickets assigned to you, from **GitHub and Jira** together (each tagged with its tracker) during the GitHub→Jira migration |
+| **Assigned Issues** | Your open **Jira** tickets (Data Center), subtasks nested under their parent story |
 
 Each item is rendered in a local dashboard with click-through links to the original, per-day dismiss tracking, and a time-of-day-aware greeting — so you can triage without jumping between tabs. PRs in the review queue additionally get a **Review** button that launches a ready-to-go Claude Code review session — see [One-click PR review](#one-click-pr-review).
 
@@ -35,7 +35,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
         │
         ├─ Agent 1 ── M365 email search (MCP) ──→ dashboard/data/emails.js
         ├─ Agent 2 ── gh api (PRs)            ──→ dashboard/data/prs.js
-        └─ Agent 3 ── gh api + scripts/fetch-jira.sh ──→ dashboard/data/issues.js
+        └─ Agent 3 ── scripts/fetch-jira.sh (Jira)   ──→ dashboard/data/issues.js
                                                        │
    Orchestrator ── writes dashboard/data/meta.js (last) ─┘
                                                           │
@@ -49,8 +49,8 @@ The project has no build step, server, or runtime framework. The moving parts ar
 ### Data sources in detail
 
 - **Email** is fetched via the Microsoft 365 MCP tool (`outlook_email_search`) with a query built from `config/email-filters.json`: `isRead:false` plus a `NOT body:"…"` clause per `bodyExclusions` entry (drops automated PR-review comments like `claude[bot]` and `@Copilot`) and a `NOT from:"…"` clause per `senderExclusions` entry (drops noisy senders like Datadog). Edit the JSON to change filtering.
-- **PRs and GitHub issues** come from `gh api search/issues` (the GitHub CLI), not `gh search`, which returns empty under OAuth tokens. The queries are scoped to a specific GitHub login — see [Configuration](#configuration) to point them at your own account.
-- **Jira tickets** come from `scripts/fetch-jira.sh`, which queries the self-hosted Jira Data Center search API (`/rest/api/2/search`, JQL `assignee = currentUser() AND statusCategory != Done`) authed by your per-user PAT in `~/.claude/jira-token.local` (the same git-ignored token the `jira` skill uses). The Issues pane shows GitHub and Jira items together with a tracker chip while issue tracking migrates from GitHub to Jira; the GitHub half is dropped once the migration completes.
+- **PRs** come from `gh api search/issues` (the GitHub CLI), not `gh search`, which returns empty under OAuth tokens. The query is scoped to a specific GitHub login — see [Configuration](#configuration) to point it at your own account.
+- **Issues** come from `scripts/fetch-jira.sh`, which queries the self-hosted Jira Data Center search API (`/rest/api/2/search`, JQL `assignee = currentUser() AND statusCategory != Done`) authed by your per-user PAT in `~/.claude/jira-token.local` (the same git-ignored token the `jira` skill uses). Issue tracking has fully migrated from GitHub to Jira, so the pane is Jira-only; each item still carries a tracker chip, and Jira subtasks nest under their parent story.
 
 ## Tech Stack
 
@@ -124,10 +124,7 @@ To preview the layout without any live data, just open `dashboard/preview/previe
 
 ### Configuration
 
-The GitHub queries in `CLAUDE.md` are scoped to a specific account. To use your own, update the login in both `gh api` queries:
-
-- PRs: `involves:SBosticParadigm` → `involves:<your-login>`
-- Issues: `assignee:SBosticParadigm` → `assignee:<your-login>`
+The GitHub PR query in `CLAUDE.md` is scoped to a specific account. To use your own, update the login in the `gh api` query: `involves:SBosticParadigm` → `involves:<your-login>`.
 
 The greeting name is the `USER_NAME` constant at the top of `dashboard/behavior.js`.
 
