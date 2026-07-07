@@ -14,7 +14,9 @@
 
 (function () {
     const SECTION_IDS = ['emails', 'prs', 'issues', 'todo'];
-    const USER_NAME = 'Sam'; // greeting name — change this to make the dashboard yours
+    // config/dashboard.js, loaded ahead of this file; guarded so a missing config degrades the
+    // greeting instead of taking down every listener this module wires.
+    const CONFIG = window.DASHBOARD_CONFIG || {};
     let storageKey; // set by init(); scoped per page so preview can't mutate the live set
     let dismissed = [];
 
@@ -397,7 +399,8 @@
         const afternoons = ['Good Afternoon', 'Still at It', 'Afternoon Check-in', "How's the Day Going"];
         const evenings = ['Good Evening', 'Burning the Midnight Oil', 'Late Night Grind', 'Wrapping Up'];
         const greetings = hour < 12 ? mornings : hour < 17 ? afternoons : evenings;
-        const pick = `${greetings[Math.floor(Math.random() * greetings.length)]}, ${USER_NAME}`;
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+        const pick = CONFIG.userName ? `${greeting}, ${CONFIG.userName}` : greeting;
         const el = document.getElementById('greeting');
         if (el) el.textContent = pick;
         document.title = pick;

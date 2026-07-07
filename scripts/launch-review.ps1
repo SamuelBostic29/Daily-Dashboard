@@ -2,7 +2,7 @@
 #
 # Invoked windowless by the URL scheme registered in install-protocol.ps1, with the full
 # gmc-review:// URL as the single argument. Ensures a base clone of the PR's repo exists in
-# D:\gmc-reviews\, materializes a git worktree at the PR's HEAD, renders prompts/pr-review.md
+# the reviews root, materializes a git worktree at the PR's HEAD, renders prompts/pr-review.md
 # into a brief file, and opens a Windows Terminal tab running an interactive `claude` session
 # in that worktree pointed at the brief.
 #
@@ -17,9 +17,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-# Clones and worktrees are full source checkouts - they live on the roomy data drive, not C:.
-# Keep in sync with cleanup-reviews.ps1.
-$reviewsRoot = "D:\gmc-reviews"
+# Clones and worktrees are full source checkouts - point reviewsRoot (config\dashboard.json,
+# shared with cleanup-reviews.ps1) at a roomy drive, not C:.
+$reviewsRoot = (Get-Content -Raw (Join-Path $repoRoot "config\dashboard.json") | ConvertFrom-Json).reviewsRoot
 $logFile = Join-Path $reviewsRoot "launch.log"
 
 # This script runs with no visible console, so failures must surface themselves.

@@ -98,13 +98,27 @@
         return html`<span class="source-tag ${mod}">${source}</span>`;
     }
 
+    // Jira has no fixed public host, so the browse-link pattern is derived from the configured
+    // base URL (config/dashboard.js) — a fork's chips follow whatever Jira it points at, and
+    // with no jiraBaseUrl configured the Jira inference simply stays off (#76).
+    function jiraBrowsePattern() {
+        const base = (window.DASHBOARD_CONFIG || {}).jiraBaseUrl;
+        if (!base) return null;
+        const host = String(base)
+            .replace(/^https?:\/\//i, '')
+            .replace(/\/.*$/, '');
+        const escaped = host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`^https?://${escaped}/browse/[A-Za-z][A-Za-z0-9]*-\\d+`, 'i');
+    }
+
     // Infer a tracker from a link so custom TODO entries get a chip from their URL alone:
-    // a GitHub issue link (github.com/<owner>/<repo>/issues/<n>) → GitHub, a portal Jira
+    // a GitHub issue link (github.com/<owner>/<repo>/issues/<n>) → GitHub, a configured-Jira
     // browse link (…/browse/KEY-123) → Jira. PR links (…/pull/<n>) deliberately don't match.
     function sourceFromUrl(url) {
         const u = String(url == null ? '' : url);
         if (/^https?:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(u)) return 'GitHub';
-        if (/^https?:\/\/portal\.myparadigm\.com\/browse\/[A-Za-z][A-Za-z0-9]*-\d+/i.test(u)) return 'Jira';
+        const jira = jiraBrowsePattern();
+        if (jira && jira.test(u)) return 'Jira';
         return '';
     }
 

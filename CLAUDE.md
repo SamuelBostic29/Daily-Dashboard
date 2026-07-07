@@ -6,9 +6,9 @@ A personal dashboard that refreshes through the day — and via Windows Task Sch
 
 This repo is personal-owned, so interactive work uses the personal `SamuelBostic29` account: `git push`/`pull`, `gh issue`/`pr`, and reads alike.
 
-The one exception is the briefing run, which queries Paradigm **work** data (`involves:SBosticParadigm` PRs, `assignee:SBosticParadigm` issues) and so makes its `gh` data calls under the work `SBosticParadigm` account. The mechanism: `scripts/start-session.ps1` sets `DAILY_DASHBOARD_BRIEFING=1` before launching `claude`; the global `gh-account-guard.ps1` hook reads that flag (inherited by the briefing process and its agents) and, with `config/gh-account.json` (`{ "ghAccount": "SBosticParadigm" }`), pins the briefing's data calls to that account. Change the config value to use a different briefing account.
+The one exception is the briefing run, which queries **work** data (the PR queue is scoped to the `githubLogin` in `config/dashboard.json`) and so makes its `gh` data calls under a separate work account. The mechanism: `scripts/start-session.ps1` sets `DAILY_DASHBOARD_BRIEFING=1` before launching `claude`; the global `gh-account-guard.ps1` hook reads that flag (inherited by the briefing process and its agents) and pins the briefing's data calls to the account named by `config/gh-account.json` (`ghAccount`). Change the config value to use a different briefing account.
 
-Before launching a briefing via `start-session.ps1`, confirm the work account is active: run `gh auth status`, and if it isn't `SBosticParadigm`, run `gh auth switch --user SBosticParadigm`.
+Before launching a briefing via `start-session.ps1`, confirm the briefing account is active: run `gh auth status`, and if the active account isn't the `ghAccount` from `config/gh-account.json`, switch with `gh auth switch --user <that account>`.
 
 ## Morning Briefing Workflow
 
@@ -55,13 +55,13 @@ window.BRIEFING_EMAILS = [
 
 ### Agent 2: GitHub PR Queue → `data/prs.js`
 
-Fetch open PRs with `gh api` (not `gh search prs`, which returns empty under OAuth tokens):
+The query is scoped to the `githubLogin` in `config/dashboard.json`. Fetch open PRs with `gh api` (not `gh search prs`, which returns empty under OAuth tokens), resolving the login inline:
 
 ```bash
-gh api search/issues --method GET -f q="is:open is:pr involves:SBosticParadigm archived:false" -f per_page=100 --jq '.items[] | {title: .title, repo: (.repository_url | split("/") | .[-2:] | join("/")), number: .number, url: .html_url, author: .user.login, created_at: .created_at}'
+LOGIN=$(node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync("config/dashboard.json","utf8")).githubLogin))') && gh api search/issues --method GET -f q="is:open is:pr involves:$LOGIN archived:false" -f per_page=100 --jq '.items[] | {title: .title, repo: (.repository_url | split("/") | .[-2:] | join("/")), number: .number, url: .html_url, author: .user.login, created_at: .created_at}'
 ```
 
-Split into `mine` (authored by `SBosticParadigm`) and `review` (all others):
+Split into `mine` (authored by that `githubLogin`) and `review` (all others):
 
 ```js
 window.BRIEFING_PRS = {

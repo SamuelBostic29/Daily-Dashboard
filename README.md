@@ -70,6 +70,8 @@ The project has no build step, server, or runtime framework. The moving parts ar
 
 ```
 CLAUDE.md                  The morning-briefing workflow Claude executes
+config/dashboard.js        Browser-side personal config (greeting name, Jira base URL)
+config/dashboard.json      Script-side personal config (GitHub login, Jira base URL, reviews root)
 config/schedule.json       Polling schedule: start/end time, interval, days of week
 config/email-filters.json  Email search exclusions: body phrases and senders to filter out
 prompts/pr-review.md       Review-prompt template rendered into each one-click review session
@@ -115,6 +117,9 @@ No language runtime, package install, or build is required — the dashboard is 
 git clone https://github.com/SamuelBostic29/Daily-Dashboard.git
 cd Daily-Dashboard
 
+# Make it yours: edit config/dashboard.js (greeting name, Jira URL)
+# and config/dashboard.json (GitHub login, Jira URL, reviews root) — see Configuration below.
+
 # Launch Claude Code in the project directory, then prompt:
 #   Run the morning briefing
 # Claude fetches your data and writes dashboard/data/*.js.
@@ -131,9 +136,10 @@ The dashboard itself needs no install or build — the page runs straight off `f
 
 ### Configuration
 
-The GitHub PR query in `CLAUDE.md` is scoped to a specific account. To use your own, update the login in the `gh api` query: `involves:SBosticParadigm` → `involves:<your-login>`.
+All personal values live in two small config files — a fork edits config, never source:
 
-The greeting name is the `USER_NAME` constant at the top of `dashboard/behavior.js`.
+- **`config/dashboard.js`** (browser side — the pages load it as a script tag, since `file://` can't fetch JSON): `userName` for the greeting, `jiraBaseUrl` for the Issues pane's Jira-link chip inference.
+- **`config/dashboard.json`** (script side): `githubLogin` scoping the briefing's PR query, `jiraBaseUrl` for `scripts/fetch-jira.sh`, and `reviewsRoot` — where the one-click review cache lives. (`jiraBaseUrl` is deliberately present in both files; keep them in sync.)
 
 `config/email-filters.json` controls what the email search excludes — each `bodyExclusions` entry becomes a `NOT body:"…"` clause and each `senderExclusions` entry a `NOT from:"…"` clause on the base `isRead:false` query:
 
@@ -180,7 +186,7 @@ A `file://` page can't spawn processes, so the dashboard hands off through a cus
 ```
 Review button → gmc-review:// link → Windows URL-scheme handler
     → scripts/launch-review.ps1
-        ├─ ensure a clone / git worktree in D:\gmc-reviews\ at the PR's HEAD
+        ├─ ensure a clone / git worktree in the reviews root at the PR's HEAD
         ├─ render prompts/pr-review.md into a brief file
         └─ open a wt tab: interactive `claude` in the worktree, pointed at the brief
 ```
@@ -205,10 +211,10 @@ Requires Windows Terminal and the native Claude Code install (`claude.exe` on PA
 
 ### The reviews cache
 
-Reviews check out code into a dedicated cache at `D:\gmc-reviews\` — never your working clones, so in-progress work is untouched and any number of reviews can run in parallel. The cache lives on the data drive because clones and worktrees are full source checkouts; change the `$reviewsRoot` constant in `launch-review.ps1` and `cleanup-reviews.ps1` to relocate it.
+Reviews check out code into a dedicated cache — never your working clones, so in-progress work is untouched and any number of reviews can run in parallel. Its location is the `reviewsRoot` in `config/dashboard.json` (default `D:\gmc-reviews`); point it at a roomy drive, since clones and worktrees are full source checkouts.
 
 ```
-D:\gmc-reviews\
+<reviewsRoot>\
   <owner>-<repo>\           one-time base clone per repo (the only expensive step)
   <owner>-<repo>-pr-<n>\    git worktree on the PR's branch — cheap, shares the clone's objects
   briefs\                   rendered review prompts handed to each session
