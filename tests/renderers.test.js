@@ -6,11 +6,22 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { loadModule } = require('./helpers/load-module');
+const { createSandbox, loadModule } = require('./helpers/load-module');
 
-function freshRenderers() {
-    const sandbox = loadModule('dashboard/renderers.js');
+function freshRenderers(config) {
+    const sandbox = loadModule(
+        'dashboard/renderers.js',
+        createSandbox(config ? { DASHBOARD_CONFIG: config } : {}),
+    );
     return { sandbox, R: sandbox.DashboardRenderers };
+}
+
+function chipReader(R) {
+    return (item) => {
+        const markup = R.renderIssueItem(item);
+        const m = markup.match(/source-tag (source-\w+)">([^<]*)</);
+        return m ? { mod: m[1], text: m[2] } : null;
+    };
 }
 
 test('escapeHtml escapes all five specials and maps null/undefined to empty', () => {
@@ -59,18 +70,14 @@ test('hostile item fields cannot break out of the card markup', () => {
 });
 
 test('sourceFromUrl infers tracker chips from the link alone', () => {
-    const { R } = freshRenderers();
-    const chipFor = (item) => {
-        const markup = R.renderIssueItem(item);
-        const m = markup.match(/source-tag (source-\w+)">([^<]*)</);
-        return m ? { mod: m[1], text: m[2] } : null;
-    };
+    const { R } = freshRenderers({ jiraBaseUrl: 'https://jira.example.com' });
+    const chipFor = chipReader(R);
     assert.deepEqual(chipFor({ id: 'i-1', title: 't', meta: 'm', url: 'https://github.com/o/r/issues/12' }), {
         mod: 'source-github',
         text: 'GitHub',
     });
     assert.deepEqual(
-        chipFor({ id: 'i-2', title: 't', meta: 'm', url: 'https://portal.myparadigm.com/browse/ABC-123' }),
+        chipFor({ id: 'i-2', title: 't', meta: 'm', url: 'https://jira.example.com/browse/ABC-123' }),
         { mod: 'source-jira', text: 'Jira' },
     );
     // PR links deliberately don't match — a PR is not an issue.
@@ -80,6 +87,34 @@ test('sourceFromUrl infers tracker chips from the link alone', () => {
         chipFor({ id: 'i-4', title: 't', meta: 'm', url: 'https://github.com/o/r/issues/9', source: 'Jira' }),
         { mod: 'source-jira', text: 'Jira' },
     );
+});
+
+test('the Jira browse pattern comes from DASHBOARD_CONFIG.jiraBaseUrl, not a hardcoded host (#76)', () => {
+    const { R } = freshRenderers({ jiraBaseUrl: 'https://jira.example.com' });
+    const chipFor = chipReader(R);
+    // The configured host gets the chip; an unconfigured host — including the author's own
+    // Jira — gets none. Forks point the inference at their Jira by editing config, not source.
+    assert.deepEqual(
+        chipFor({ id: 'j-1', title: 't', meta: 'm', url: 'https://jira.example.com/browse/ABC-1' }),
+        { mod: 'source-jira', text: 'Jira' },
+    );
+    assert.equal(
+        chipFor({ id: 'j-2', title: 't', meta: 'm', url: 'https://portal.myparadigm.com/browse/ABC-1' }),
+        null,
+    );
+});
+
+test('without a configured jiraBaseUrl, Jira URL inference stays off (GitHub inference unaffected)', () => {
+    const { R } = freshRenderers();
+    const chipFor = chipReader(R);
+    assert.equal(
+        chipFor({ id: 'n-1', title: 't', meta: 'm', url: 'https://jira.example.com/browse/ABC-1' }),
+        null,
+    );
+    assert.deepEqual(chipFor({ id: 'n-2', title: 't', meta: 'm', url: 'https://github.com/o/r/issues/3' }), {
+        mod: 'source-github',
+        text: 'GitHub',
+    });
 });
 
 test('renderIssues nests subtasks under their parent, in order', () => {

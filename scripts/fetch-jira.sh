@@ -11,7 +11,16 @@
 # Bash, never PowerShell (PS `curl` is an Invoke-WebRequest alias that mangles -K/-G).
 set -euo pipefail
 
-BASE="https://portal.myparadigm.com/rest/api/2"
+# The Jira base URL lives in the shared script-side config. Fail loudly when unset — a fork
+# that hasn't configured Jira should see why, not silently query someone else's host.
+CONFIG_FILE="$(cd "$(dirname "$0")/.." && pwd)/config/dashboard.json"
+JIRA_BASE="$(node -e 'process.stdout.write(String(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).jiraBaseUrl || ""))' "$CONFIG_FILE")"
+if [ -z "$JIRA_BASE" ]; then
+  echo "fetch-jira: no jiraBaseUrl in config/dashboard.json." >&2
+  exit 1
+fi
+JIRA_BASE="${JIRA_BASE%/}"
+BASE="$JIRA_BASE/rest/api/2"
 JQL="assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC"
 FIELDS="summary,status,updated,priority,issuetype,labels,parent"
 PAGE=100
@@ -56,7 +65,7 @@ done
 node -e '
   const fs = require("fs");
   const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean);
-  const browse = "https://portal.myparadigm.com/browse/";
+  const browse = process.argv[2] + "/browse/";
   const now = Date.now();
   const seen = new Set();
   const items = lines.flatMap(l => { try { return JSON.parse(l).issues || []; } catch { return []; } })
@@ -80,4 +89,4 @@ node -e '
       return item;
     });
   process.stdout.write(JSON.stringify(items, null, 2));
-' "$pages"
+' "$pages" "$JIRA_BASE"

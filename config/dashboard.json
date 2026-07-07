@@ -1,0 +1,6 @@
+{
+    "githubLogin": "SBosticParadigm",
+    "jiraBaseUrl": "https://portal.myparadigm.com",
+    "reviewsRoot": "D:\\gmc-reviews",
+    "_comment": "Script-side config. githubLogin scopes the briefing's PR query (CLAUDE.md Agent 2); jiraBaseUrl feeds scripts/fetch-jira.sh; reviewsRoot is the one-click-review cache used by scripts/launch-review.ps1 and scripts/cleanup-reviews.ps1. The browser-side twin is config/dashboard.js — jiraBaseUrl is deliberately present in both, keep them in sync."
+}

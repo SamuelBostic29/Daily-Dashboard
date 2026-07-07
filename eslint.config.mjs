@@ -8,8 +8,9 @@ export default [
     prettier,
     {
         // The dashboard modules are plain <script>-loaded IIFEs (file:// page, no build step),
-        // so they share state through window.* globals rather than imports.
-        files: ['dashboard/**/*.js'],
+        // so they share state through window.* globals rather than imports. config/dashboard.js
+        // is loaded the same way, ahead of them.
+        files: ['dashboard/**/*.js', 'config/dashboard.js'],
         languageOptions: {
             ecmaVersion: 2022,
             sourceType: 'script',

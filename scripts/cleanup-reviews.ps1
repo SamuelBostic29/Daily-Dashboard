@@ -1,4 +1,4 @@
-# Ages out the one-click PR review cache (D:\gmc-reviews\): removes per-PR worktrees (and
+# Ages out the one-click PR review cache (the configured reviews root): removes per-PR worktrees (and
 # their pr-<n> branches and rendered briefs) not launched in the last -Days days. The per-repo
 # base clones are kept - they are the one-time expensive part. Run manually whenever; every
 # launch-review.ps1 run resets its worktree's clock.
@@ -8,8 +8,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Keep in sync with launch-review.ps1.
-$reviewsRoot = "D:\gmc-reviews"
+# Same reviewsRoot (config\dashboard.json) launch-review.ps1 populates.
+$repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$reviewsRoot = (Get-Content -Raw (Join-Path $repoRoot "config\dashboard.json") | ConvertFrom-Json).reviewsRoot
 if (-not (Test-Path $reviewsRoot)) {
     Write-Host "No reviews cache at $reviewsRoot - nothing to clean."
     return
