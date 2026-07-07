@@ -8,7 +8,7 @@
 
 (function () {
     function escapeHtml(s) {
-        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => {
             return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
         });
     }
@@ -20,25 +20,24 @@
     }
 
     // Tagged template: every ${value} is HTML-escaped unless explicitly wrapped in raw().
-    function html(strings) {
-        var values = Array.prototype.slice.call(arguments, 1);
-        return strings.reduce(function (out, str, i) {
+    function html(strings, ...values) {
+        return strings.reduce((out, str, i) => {
             if (i >= values.length) return out + str;
-            var v = values[i];
+            const v = values[i];
             return out + str + (v && v.__rawHtml !== undefined ? v.__rawHtml : escapeHtml(v));
         }, '');
     }
 
     // Only let http(s) URLs reach an href; anything else (javascript:, data:, …) becomes inert.
     function safeUrl(url) {
-        var u = String(url == null ? '' : url).trim();
+        const u = String(url == null ? '' : url).trim();
         return /^https?:\/\//i.test(u) ? u : '#';
     }
 
     // Items indexed by id as they render, so behavior code (e.g. the Add-to-TODO selection
     // mode) can resolve a card in the DOM back to its data without re-deriving it from page
     // globals. Re-renders simply re-register; lookups only ever use ids present in the DOM.
-    var renderedItems = {};
+    const renderedItems = {};
 
     function getItem(id) {
         return renderedItems[id];
@@ -49,31 +48,31 @@
     function renderItemBase(item, opts) {
         opts = opts || {};
         renderedItems[item.id] = item;
-        var showPreview = opts.showPreview !== undefined ? opts.showPreview : !!item.preview;
-        var showLabels =
+        const showPreview = opts.showPreview !== undefined ? opts.showPreview : !!item.preview;
+        const showLabels =
             opts.showLabels !== undefined ? opts.showLabels : !!(item.labels && item.labels.length);
-        var lead = opts.lead !== undefined ? opts.lead : '';
+        const lead = opts.lead !== undefined ? opts.lead : '';
 
         // NOTE: this <button> sits inside the item's <a>, which is technically an invalid content
         // model (interactive content inside a link). It works because behavior.js's delegated
         // handler calls preventDefault so a dismiss click never navigates — keep that guarantee if
         // a future surface reuses this, or restructure the button out of the <a> (tracked separately).
-        var action =
+        const action =
             opts.action !== undefined
                 ? opts.action
                 : html`<button class="dismiss-btn" type="button" aria-label="Dismiss">&times;</button>`;
-        var preview = showPreview ? html`<div class="item-preview">${item.preview}</div>` : '';
-        var labels = showLabels
+        const preview = showPreview ? html`<div class="item-preview">${item.preview}</div>` : '';
+        const labels = showLabels
             ? ' · ' +
               item.labels
-                  .map(function (l) {
+                  .map((l) => {
                       return html`<span class="label-tag">${l}</span>`;
                   })
                   .join(' ')
             : '';
         // A nested row (a Jira subtask under its parent, #72) gets the child modifier, which CSS
         // turns into the indent + connector; otherwise it's an ordinary item.
-        var cls = 'item' + (opts.nested ? ' item-child' : '');
+        const cls = 'item' + (opts.nested ? ' item-child' : '');
 
         return (
             html`<a class="${cls}" href="${safeUrl(item.url)}" target="_blank" rel="noopener noreferrer" data-item-id="${item.id}">` +
@@ -95,7 +94,7 @@
     // per-source color; absent source → no chip.
     function sourceChip(source) {
         if (!source) return '';
-        var mod = source.toLowerCase() === 'jira' ? 'source-jira' : 'source-github';
+        const mod = source.toLowerCase() === 'jira' ? 'source-jira' : 'source-github';
         return html`<span class="source-tag ${mod}">${source}</span>`;
     }
 
@@ -103,7 +102,7 @@
     // a GitHub issue link (github.com/<owner>/<repo>/issues/<n>) → GitHub, a portal Jira
     // browse link (…/browse/KEY-123) → Jira. PR links (…/pull/<n>) deliberately don't match.
     function sourceFromUrl(url) {
-        var u = String(url == null ? '' : url);
+        const u = String(url == null ? '' : url);
         if (/^https?:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(u)) return 'GitHub';
         if (/^https?:\/\/portal\.myparadigm\.com\/browse\/[A-Za-z][A-Za-z0-9]*-\d+/i.test(u)) return 'Jira';
         return '';
@@ -115,7 +114,7 @@
     }
 
     function renderIssueItem(item, nested) {
-        return renderItemBase(item, { lead: sourceChip(resolveSource(item)), nested: nested });
+        return renderItemBase(item, { lead: sourceChip(resolveSource(item)), nested });
     }
 
     // Nest Jira subtasks (#72): render each parent/orphan in place, immediately followed by any of
@@ -124,28 +123,28 @@
     // back to rendering flat, in its original position. Order is otherwise preserved. renderFn is
     // the per-surface card (renderIssueItem on the dashboard, renderTodoItem in the TODO view).
     function renderNestedIssues(items, renderFn) {
-        var present = {};
-        items.forEach(function (it) {
+        const present = {};
+        items.forEach((it) => {
             present[it.id] = true;
         });
-        var parentIdOf = function (it) {
+        const parentIdOf = function (it) {
             return it.parentKey ? 'issue-' + it.parentKey : '';
         };
-        var childrenOf = {};
-        items.forEach(function (it) {
-            var pid = parentIdOf(it);
+        const childrenOf = {};
+        items.forEach((it) => {
+            const pid = parentIdOf(it);
             if (pid && present[pid]) (childrenOf[pid] = childrenOf[pid] || []).push(it);
         });
         return items
-            .filter(function (it) {
-                var pid = parentIdOf(it);
+            .filter((it) => {
+                const pid = parentIdOf(it);
                 return !(pid && present[pid]); // children are emitted under their parent below, not here
             })
-            .map(function (it) {
+            .map((it) => {
                 return (
                     renderFn(it, false) +
                     (childrenOf[it.id] || [])
-                        .map(function (c) {
+                        .map((c) => {
                             return renderFn(c, true);
                         })
                         .join('')
@@ -156,7 +155,7 @@
 
     // The dashboard Issues section: like renderSection, but nests subtasks under their parent.
     function renderIssues(items) {
-        var body = document.getElementById('issues-body');
+        const body = document.getElementById('issues-body');
         if (!body) return;
         body.innerHTML =
             items && items.length
@@ -167,7 +166,7 @@
     // One-click PR review entry point (#25): a leading Review button that launches an
     // interactive Claude review session via the gmc-review:// protocol (click handled in
     // behavior.js, hand-off implemented by scripts/launch-review.ps1).
-    var reviewButton = html`<button class="review-btn" type="button" aria-label="Review with Claude">Review</button>`;
+    const reviewButton = html`<button class="review-btn" type="button" aria-label="Review with Claude">Review</button>`;
 
     // Review-queue PRs on the dashboard.
     function renderReviewPRItem(item) {
@@ -182,7 +181,7 @@
             return html`<div class="empty-state">${emptyText || 'No items'}</div>`;
         }
         return items
-            .map(function (item) {
+            .map((item) => {
                 return renderFn(item);
             })
             .join('');
@@ -190,16 +189,16 @@
 
     // Render a flat section (emails / issues) into its #<id>-body container.
     function renderSection(id, items, renderFn) {
-        var body = document.getElementById(id + '-body');
+        const body = document.getElementById(id + '-body');
         if (body) body.innerHTML = renderList(items, renderFn);
     }
 
     // Render the PR section's two sub-groups (mine / needs-review) into #prs-body.
     function renderPRs(prs) {
-        var body = document.getElementById('prs-body');
+        const body = document.getElementById('prs-body');
         if (!body) return;
-        var mine = (prs && prs.mine) || [];
-        var review = (prs && prs.review) || [];
+        const mine = (prs && prs.mine) || [];
+        const review = (prs && prs.review) || [];
         if (!mine.length && !review.length) {
             body.innerHTML = renderList([], null, 'No items');
             return;
@@ -212,7 +211,7 @@
     }
 
     // The TODO view's sub-headers, in display order; only groups with items render.
-    var TODO_GROUPS = [
+    const TODO_GROUPS = [
         { type: 'email', label: 'Emails' },
         { type: 'pr', label: 'Pull Requests' },
         { type: 'issue', label: 'Issues' },
@@ -235,7 +234,7 @@
     function renderTodoItem(item, nested) {
         return renderItemBase(item, {
             showPreview: false,
-            nested: nested,
+            nested,
             lead: sourceChip(resolveSource(item)) + (item.type === 'pr' ? reviewButton : ''),
             action:
                 todoMoveButton(item) +
@@ -247,15 +246,15 @@
     // holding the lane header and the items grouped under the type sub-headers — or a one-line hint
     // when empty, so a lane (notably In Progress) stays visible, droppable, and discoverable.
     function renderTodoLane(status, label, items, emptyHint) {
-        var inner = items.length
-            ? TODO_GROUPS.map(function (group) {
-                  var grouped = items.filter(function (item) {
+        const inner = items.length
+            ? TODO_GROUPS.map((group) => {
+                  const grouped = items.filter((item) => {
                       return item.type === group.type;
                   });
                   if (!grouped.length) return '';
                   // Issues nest subtasks under their parent; nesting is confined to this lane's items,
                   // so a parent and child split across lanes (#72) render flat in their own lanes.
-                  var rows =
+                  const rows =
                       group.type === 'issue'
                           ? renderNestedIssues(grouped, renderTodoItem)
                           : renderList(grouped, renderTodoItem);
@@ -275,16 +274,16 @@
     // for a fresh list; once anything is on it both lanes always show, so a card can move (button
     // or drag) into In Progress and back.
     function renderTodo(items) {
-        var body = document.getElementById('todo-body');
+        const body = document.getElementById('todo-body');
         if (!body) return;
         if (!items || !items.length) {
             body.innerHTML = renderList([], null, 'Nothing on the list yet — add items from the Dashboard');
             return;
         }
-        var inProgress = items.filter(function (item) {
+        const inProgress = items.filter((item) => {
             return item.status === 'in-progress';
         });
-        var todo = items.filter(function (item) {
+        const todo = items.filter((item) => {
             return item.status !== 'in-progress';
         });
         body.innerHTML =
@@ -297,20 +296,20 @@
     }
 
     window.DashboardRenderers = {
-        html: html,
-        raw: raw,
-        escapeHtml: escapeHtml,
-        getItem: getItem,
-        renderItemBase: renderItemBase,
-        renderEmailItem: renderEmailItem,
-        renderPRItem: renderPRItem,
-        renderReviewPRItem: renderReviewPRItem,
-        renderIssueItem: renderIssueItem,
-        renderTodoItem: renderTodoItem,
-        renderList: renderList,
-        renderSection: renderSection,
-        renderIssues: renderIssues,
-        renderPRs: renderPRs,
-        renderTodo: renderTodo,
+        html,
+        raw,
+        escapeHtml,
+        getItem,
+        renderItemBase,
+        renderEmailItem,
+        renderPRItem,
+        renderReviewPRItem,
+        renderIssueItem,
+        renderTodoItem,
+        renderList,
+        renderSection,
+        renderIssues,
+        renderPRs,
+        renderTodo,
     };
 })();
