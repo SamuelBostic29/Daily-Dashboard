@@ -174,7 +174,7 @@
         body.innerHTML =
             items && items.length
                 ? renderNestedIssues(items, renderIssueItem)
-                : renderList([], renderIssueItem);
+                : renderList(items, renderIssueItem);
     }
 
     // One-click PR review entry point (#25): a leading Review button that launches an
@@ -191,7 +191,13 @@
     // renderFn is invoked with the item alone — never as a bare .map callback, whose index argument
     // would land in the renderers' optional `nested` param and indent every row after the first.
     function renderList(items, renderFn, emptyText) {
-        if (!items || !items.length) {
+        // undefined/null means the section's data file failed to load or parse (its BRIEFING_*
+        // global never got assigned) — visibly different from an empty list, which is real,
+        // successfully-fetched data that happens to have no items (#83).
+        if (items == null) {
+            return html`<div class="error-state">Data didn't load — check the last briefing run's log</div>`;
+        }
+        if (!items.length) {
             return html`<div class="empty-state">${emptyText || 'No items'}</div>`;
         }
         return items
@@ -211,8 +217,12 @@
     function renderPRs(prs) {
         const body = document.getElementById('prs-body');
         if (!body) return;
-        const mine = (prs && prs.mine) || [];
-        const review = (prs && prs.review) || [];
+        if (prs == null) {
+            body.innerHTML = renderList(prs, null);
+            return;
+        }
+        const mine = prs.mine || [];
+        const review = prs.review || [];
         if (!mine.length && !review.length) {
             body.innerHTML = renderList([], null, 'No items');
             return;

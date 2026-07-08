@@ -20,7 +20,7 @@ Each writer below follows the same three rules:
 
 1. **Delete before writing.** The writer's first tool call is the Bash command `rm -f dashboard/data/<target-file>`, before any Write. Writing over an existing file trips the harness's "must Read first" guard and forces a slow Read→Edit fallback; deleting first avoids it, and `rm -f` is silent when the file is absent, so it's safe on the first run.
 2. **Use relative paths in Bash.** The working directory is the repo root, so `dashboard/data/<file>` resolves correctly — use it as-is, and never rewrite it to an absolute Windows path. Unquoted backslashes are Bash escape sequences that silently corrupt the path, so the `rm` no-ops and the later Write fails. Bash handles these file operations; PowerShell is only for launching sessions and opening the dashboard.
-3. **Emit strings as valid JSON.** Every value placed inside `"..."` (subjects, titles, sender names, previews) is external data that may contain `"`, `\`, or line breaks. Escape each exactly as `JSON.stringify` would — `"`→`\"`, `\`→`\\`, newline→`\n`, return→`\r`, tab→`\t`. A single raw character makes the whole `data/*.js` file invalid, and the browser then loads that section as empty with no error.
+3. **Emit strings as valid JSON.** Every value placed inside `"..."` (subjects, titles, sender names, previews) is external data that may contain `"`, `\`, or line breaks. Escape each exactly as `JSON.stringify` would — `"`→`\"`, `\`→`\\`, newline→`\n`, return→`\r`, tab→`\t`. A single raw character makes the whole `data/*.js` file invalid; the dashboard then shows that section's on-page error state ("Data didn't load…") instead of its items until a valid file lands.
 
 After deleting, write only the file format shown for that data source.
 

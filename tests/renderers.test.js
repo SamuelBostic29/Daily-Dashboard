@@ -171,6 +171,32 @@ test('renderList renders the empty state with default and custom text', () => {
     assert.equal(R.renderList([], R.renderIssueItem, 'None'), '<div class="empty-state">None</div>');
 });
 
+test('undefined items render the error state; empty items keep the empty state (#83)', () => {
+    const { R } = freshRenderers();
+    // undefined means "the data file didn't load/parse" — visibly different from "no items".
+    assert.match(R.renderList(undefined, R.renderIssueItem), /error-state/);
+    assert.match(R.renderList(undefined, R.renderIssueItem), /Data didn(&#39;|')t load/);
+    assert.doesNotMatch(R.renderList([], R.renderIssueItem), /error-state/);
+    assert.match(R.renderList([], R.renderIssueItem), /empty-state/);
+});
+
+test('renderSection, renderIssues and renderPRs surface missing data as the error state (#83)', () => {
+    const { sandbox, R } = freshRenderers();
+    R.renderSection('emails', undefined, R.renderEmailItem);
+    assert.match(sandbox.document.getElementById('emails-body').innerHTML, /error-state/);
+    R.renderIssues(undefined);
+    assert.match(sandbox.document.getElementById('issues-body').innerHTML, /error-state/);
+    R.renderPRs(undefined);
+    assert.match(sandbox.document.getElementById('prs-body').innerHTML, /error-state/);
+    // Genuinely-empty payloads still render the calm empty states.
+    R.renderSection('emails', [], R.renderEmailItem);
+    assert.match(sandbox.document.getElementById('emails-body').innerHTML, /empty-state/);
+    R.renderIssues([]);
+    assert.match(sandbox.document.getElementById('issues-body').innerHTML, /empty-state/);
+    R.renderPRs({ mine: [], review: [] });
+    assert.match(sandbox.document.getElementById('prs-body').innerHTML, /empty-state/);
+});
+
 test('renderList never leaks the map index into the nested param (regression, commit 7436958)', () => {
     const { R } = freshRenderers();
     const out = R.renderList(
