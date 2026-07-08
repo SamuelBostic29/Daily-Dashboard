@@ -4,11 +4,14 @@
 // data/*.js files it depends on.
 
 (function () {
+    // The globals are deliberately NOT defaulted: a data file that failed to load/parse leaves
+    // its BRIEFING_* global undefined, and the renderers turn exactly that into the per-section
+    // error state — defaulting to [] here would silently disguise the failure as "No items" (#83).
     window.BRIEFING_DATA = {
         generatedAt: (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || '',
-        emails: window.BRIEFING_EMAILS || [],
-        prs: window.BRIEFING_PRS || { mine: [], review: [] },
-        issues: window.BRIEFING_ISSUES || [],
+        emails: window.BRIEFING_EMAILS,
+        prs: window.BRIEFING_PRS,
+        issues: window.BRIEFING_ISSUES,
     };
     const data = window.BRIEFING_DATA;
     let lastGeneratedAt = data.generatedAt;
@@ -94,17 +97,25 @@
         const pageY = window.scrollY;
 
         // data/meta.js is written last by the briefing, so the data files are already fresh.
-        const files = ['../data/emails.js', '../data/prs.js', '../data/issues.js'];
+        const files = [
+            { src: '../data/emails.js', key: 'emails', global: 'BRIEFING_EMAILS' },
+            { src: '../data/prs.js', key: 'prs', global: 'BRIEFING_PRS' },
+            { src: '../data/issues.js', key: 'issues', global: 'BRIEFING_ISSUES' },
+        ];
         let pending = files.length;
+        let anyFailed = false;
         files.forEach((f) => {
-            injectScript(f, () => {
+            injectScript(f.src, (ok) => {
+                // A file that vanished or failed must surface as the section's error state —
+                // keeping the previous global would let stale data mask the failure (#83).
+                data[f.key] = ok ? window[f.global] : undefined;
+                anyFailed = anyFailed || !ok;
                 if (--pending > 0) return;
-                data.emails = window.BRIEFING_EMAILS || [];
-                data.prs = window.BRIEFING_PRS || { mine: [], review: [] };
-                data.issues = window.BRIEFING_ISSUES || [];
                 data.generatedAt =
                     (window.BRIEFING_META && window.BRIEFING_META.generatedAt) || data.generatedAt;
-                lastGeneratedAt = data.generatedAt; // advance only on success, so a failed reload retries next poll
+                // Advance only when every file landed: a partly-failed reload keeps showing the
+                // error state but retries on each meta poll, so a rewritten file heals itself.
+                if (!anyFailed) lastGeneratedAt = data.generatedAt;
                 renderAll();
                 Object.keys(scrolls).forEach((id) => {
                     const b = document.getElementById(id);
