@@ -29,6 +29,10 @@ The dashboard answers *"what came in?"*; the **TODO view** (second tab on the sa
 
 The list persists in `localStorage` and — unlike the per-day dismiss state — **carries across days**: a dismiss means "done looking at this today", a TODO means "I still owe this work", so entries stay until you remove them with their **&times;** button. Briefing refreshes never touch the TODO list.
 
+![TODO view](assets/todo-preview.png)
+
+*The TODO view: In Progress and To Do lanes, items grouped by type, Jira subtasks nested under their parent story — with per-card move (&#9650;/&#9660;), remove, and one-click Review controls (shown with placeholder data).*
+
 ## How It Works
 
 The project has no build step, server, or runtime framework. The moving parts are:
@@ -47,7 +51,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
 
 1. **`CLAUDE.md`** defines the briefing workflow. Each agent deletes its target data file and writes a fresh one — it never returns JSON to the orchestrator. The briefing **does not open a browser**: under all-day polling it runs windowless and headless, so opening one would be disruptive.
 2. **`dashboard/template/template.html`** is a no-build page (vanilla HTML/CSS/JS) that links the shared `../css/styles.css`, `../renderers.js`, and `../behavior.js`. On load it reads the four `data/*.js` files, each of which assigns a global (`window.BRIEFING_EMAILS`, `window.BRIEFING_PRS`, `window.BRIEFING_ISSUES`, `window.BRIEFING_META`), and stitches them into `window.BRIEFING_DATA` for rendering. It then **polls `data/meta.js` once a minute** and, when `generatedAt` changes, reloads all data files and re-renders in place — preserving scroll and dismissed state — so a dashboard left open on a spare screen stays current all day.
-3. The generated `data/*.js` files are **git-ignored** — they hold your live personal data and are regenerated on every run.
+3. The generated `data/*.js` files are **git-ignored** — they hold your live personal data and are regenerated on every run. A data file that fails to load or parse shows that section's **on-page error state** ("Data didn't load…") rather than silently rendering as empty, and the page retries on each poll until a valid file lands.
 
 ### Data sources in detail
 
@@ -65,6 +69,7 @@ The project has no build step, server, or runtime framework. The moving parts ar
 | Email source | Microsoft 365 MCP server (`outlook_email_search`) |
 | GitHub source | GitHub CLI (`gh api`) |
 | Scheduler | Windows Task Scheduler, configured via PowerShell |
+| Quality gates | ESLint + Prettier + a `node:test` unit suite (the shipped modules loaded unmodified into `node:vm`), enforced on every push/PR by GitHub Actions |
 
 ## Repository Layout
 
@@ -75,7 +80,7 @@ config/dashboard.json      Script-side personal config (GitHub login, Jira base 
 config/schedule.json       Polling schedule: start/end time, interval, days of week
 config/email-filters.json  Email search exclusions: body phrases and senders to filter out
 prompts/pr-review.md       Review-prompt template rendered into each one-click review session
-scripts/fetch-jira.sh      Fetches my open Jira tickets (Data Center) as dashboard items for the Issues pane
+scripts/fetch-jira.sh      Fetches your open Jira tickets (Data Center) as dashboard items for the Issues pane
 scripts/register-task.ps1  Register / update / unregister the scheduled task
 scripts/start-session.ps1  Launches a headless Claude Code briefing session (logged)
 scripts/open-dashboard.ps1 Opens the dashboard once in the interactive session
@@ -94,6 +99,8 @@ dashboard/behavior.js             Shared runtime: greeting, delegated dismiss, b
 dashboard/todo-store.js           localStorage-backed TODO list store (scoped per page, persists across days)
 dashboard/test-data.js            Sample data for previewing the layout
 dashboard/data/*.js               Generated live data (git-ignored; folder kept + documented via data/README.md)
+tests/                     node:test unit suite (renderers, TODO store) + the node:vm module loader
+.github/workflows/ci.yml   CI: lint, format check, tests on every push/PR
 logs/                      start-session.ps1 run logs (git-ignored)
 WorkingFiles/              Free-form notes / General Logs.txt (git-ignored)
 ```
