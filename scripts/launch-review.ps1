@@ -122,7 +122,10 @@ try {
     [string]$owner = $Matches[1]
     [string]$repo = $Matches[2]
     [string]$number = $Matches[3]
-    [string]$title = if ($query['title']) { $query['title'] } else { "$owner/$repo #$number" }
+    # A `title` query param, if present, is deliberately ignored: the title lands in the brief an
+    # interactive Claude session reads, so page-supplied text is a prompt-injection surface. The
+    # real title is fetched from GitHub below; until then the neutral fallback stands.
+    [string]$title = "$owner/$repo #$number"
 
     # --- Owner allowlist ---
     # The regex above fixes the URL *shape*, not its *target*: github.com/<anything> covers
@@ -157,6 +160,20 @@ try {
         [string]$token = ($tokenOutput | Where-Object { $_ -match '^(gh[a-z]_|github_pat_)' } | Select-Object -First 1)
         if (-not $token) { Fail "Could not read a gh token for '$account' (gh output: $($tokenOutput -join ' | '))" }
         $env:GH_TOKEN = $token.Trim()
+    }
+
+    # --- Derive the tab/brief title from GitHub (the PR itself), never from the caller ---
+    # Soft-fail by design, unlike Invoke-Native: a flaky title fetch shouldn't kill the launch,
+    # it just leaves the neutral owner/repo#number fallback. Stderr is dropped rather than
+    # merged so a gh update notice can't be mistaken for the title line.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    [string[]]$titleOutput = & gh pr view $number -R "$owner/$repo" --json title -q '.title' 2>$null
+    [bool]$titleOk = ($LASTEXITCODE -eq 0)
+    $ErrorActionPreference = $prevEap
+    if ($titleOk) {
+        [string]$fetchedTitle = ($titleOutput | Where-Object { $_ } | Select-Object -First 1)
+        if ($fetchedTitle) { $title = $fetchedTitle.Trim() }
     }
 
     # --- Ensure the base clone, then a worktree at the PR's HEAD ---

@@ -355,14 +355,14 @@
     // (scripts/launch-review.ps1) — the same model as a mailto: link, since a file:// page
     // can't spawn processes. The launcher re-validates, but only real GitHub PR URLs are
     // forwarded so preview/test items (url: "#") never fire the protocol.
+    // Only the URL travels: the launcher derives the tab/brief title from `gh pr view` itself,
+    // so no page-controlled text can reach the brief the review session reads (#85).
     function launchReview(item) {
         if (!item || !/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(item.url)) {
             showToast('No GitHub PR URL on this item.');
             return;
         }
-        window.location.href = `gmc-review://review?url=${encodeURIComponent(
-            item.url,
-        )}&title=${encodeURIComponent(item.title)}`;
+        window.location.href = `gmc-review://review?url=${encodeURIComponent(item.url)}`;
         showToast('Launching review session…');
     }
 
