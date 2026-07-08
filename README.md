@@ -191,7 +191,7 @@ Review button → gmc-review:// link → Windows URL-scheme handler
         └─ open a wt tab: interactive `claude` in the worktree, pointed at the brief
 ```
 
-The launcher defends against a hostile page firing the protocol on two levels. First, the `url` parameter must match `https://github.com/<owner>/<repo>/pull/<n>` exactly — anything else is rejected. But that only constrains the URL's *shape*, not its target (any GitHub PR URL fits the shape), so the launcher also enforces an **owner allowlist**: it will clone and review only PRs whose owner is listed in `config/review-owners.json`, and fails closed (refusing every review) if that file is missing or empty. Edit the list to control which orgs/accounts the protocol may ever touch.
+The launcher defends against a hostile page firing the protocol on two levels. First, the `url` parameter must match `https://github.com/<owner>/<repo>/pull/<n>` exactly — anything else is rejected. But that only constrains the URL's *shape*, not its target (any GitHub PR URL fits the shape), so the launcher also enforces an **owner allowlist**: it will clone and review only PRs whose owner is listed in `config/review-owners.json`, and fails closed (refusing every review) if that file is missing or empty. Edit the list to control which orgs/accounts the protocol may ever touch. The session/tab title is likewise derived from the PR itself (`gh pr view`), never from link parameters — the title lands in the brief the review session reads, so page-supplied text there would be a prompt-injection surface.
 
 ### Setup (once)
 
